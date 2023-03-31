@@ -1,0 +1,21 @@
+# -----------------------------------------------------------
+#
+#  frer.spicy --- IEEE 802.1CB Frame Replication and Elimination for Reliability (FRER) support for Spicy
+#
+# This file adds the grammar for the FRER layer.
+#
+# (C) 2022 Robin Schenderlein, Hamburg, Germany
+# Released under GNU Public License (GPL)
+# email robin.schenderlein@studium.uni-hamburg.de
+# -----------------------------------------------------------
+
+module FRER;
+
+import spicy;
+
+public type CBFrame = unit {
+	 :               uint16(0);
+	sequenceNumber:  uint16;
+	on %error { print "Error CBFrame"; }
+	on %init { print "CBFrame recieved"; }
+};

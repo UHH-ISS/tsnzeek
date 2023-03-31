@@ -1,0 +1,28 @@
+# -----------------------------------------------------------
+#
+#  tsn.evt
+#
+# This code links the entry points for the spicy grammar to packet analyzers for FRER and for SRP.
+# It also adds hooks from SRP and FRER messages to their respective Zeek events
+#
+# (C) 2022 Robin Schenderlein, Hamburg, Germany
+# Released under GNU Public License (GPL)
+# email robin.schenderlein@studium.uni-hamburg.de
+# -----------------------------------------------------------
+
+packet analyzer spicy::FRER:
+	parse with FRER::CBFrame;
+
+packet analyzer spicy::SRP:
+	parse with SRP::SRPFrame;
+
+import SRP;
+import FRER;
+import Zeek_TSN;
+import zeek;
+
+on SRP::TalkerEnhanced_FirstValue    -> event TSN::talkerEnhanced_FirstValueMsg($packet, Zeek_TSN::makeTalkerEnhanced_FirstValue(self));
+
+on SRP::ListenerEnhanced_FirstValue  -> event TSN::listenerEnhanced_FirstValueMsg($packet, Zeek_TSN::makeListenerEnhanced_FirstValue(self));
+
+on FRER::CBFrame                     -> event TSN::cb_message($packet, Zeek_TSN::makeCBFrame(self), zeek::network_time());

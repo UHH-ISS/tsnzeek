@@ -1,0 +1,105 @@
+
+interface1 = InterfaceID(InterfaceName="thisIsAnInterfaceName")
+interface2 = InterfaceID(InterfaceName="thisIsAnotherInterfaceName")
+
+talkerEnhancedFirstValueComplete = SRP(
+    tlvlist=[
+        Talker(
+            tlvlist=[
+                StreamID(),
+                StreamRank(),
+                EndStationInterfaces(interfaces=[interface1, interface2]),
+                DataFrameSpecification(
+                    tlvlist=[
+                        IEEE802MacAddresses(),
+                        IEEE802VlanTag(),
+                        IPv4tuple(),
+                        IPv6tuple(),
+                    ]
+                ),
+                TrafficSpecification(),
+                TSpecTimeAware(),
+                UserToNetworkRequirements(NumSeamlessTrees=12, MaxLatency=13),
+                InterfaceCapabilities(
+                    CBStreamIdenTypeList=[1, 2], CBSequenceTypeList=[3, 4]
+                ),
+            ]
+        ),
+        Status(
+            tlvlist=[
+                StatusInfo(),
+                AccumulatedLatency(),
+                InterfaceConfiguration(
+                    tlvlist=[interface1, TimeAwareOffset(TimeAwareOffset=55)],
+                ),
+                FailedInterfaces(interfaces=[interface1, interface2]),
+            ]
+        ),
+    ]
+)
+
+frame1 = Ether(src="00:00:00:00:00:02", dst="00:00:00:00:00:04") / Dot1Q(vlan=1000) / talkerEnhancedFirstValueComplete
+
+talkerEnhancedFirstValueMinimal = SRP(
+    tlvlist=[
+        Talker(
+            tlvlist=[
+                StreamID(),
+                StreamRank(),
+                TrafficSpecification()
+            ]
+        ),
+        Status(
+            tlvlist=[
+                StatusInfo(),
+                AccumulatedLatency()
+            ]
+        ),
+    ]
+)
+
+frame2 = Ether(src="00:00:00:00:00:02", dst="00:00:00:00:00:04") / Dot1Q(vlan=1000) / talkerEnhancedFirstValueMinimal
+
+listenerEnhancedFirstValueComplete = SRP(
+    tlvlist=[
+        Listener(
+            tlvlist=[
+                StreamID(),
+                EndStationInterfaces(interfaces=[interface1, interface2]),
+                UserToNetworkRequirements(NumSeamlessTrees=12, MaxLatency=13),
+                InterfaceCapabilities(
+                    CBStreamIdenTypeList=[1, 2], CBSequenceTypeList=[3, 4]
+                )
+            ]
+        ),
+        Status(
+            tlvlist=[
+                StatusInfo(),
+                InterfaceConfiguration(
+                    tlvlist=[interface1, TimeAwareOffset(TimeAwareOffset=55)],
+                ),
+                FailedInterfaces(interfaces=[interface1, interface2])
+            ]
+        ),
+    ]
+)
+frame3 = Ether(src="00:00:00:00:00:02", dst="00:00:00:00:00:04") / Dot1Q(vlan=1000) / listenerEnhancedFirstValueComplete
+
+listenerEnhancedFirstValueMinimal = SRP(
+    tlvlist=[
+        Listener(
+            tlvlist=[
+                StreamID()
+            ]
+        ),
+        Status(
+            tlvlist=[
+                StatusInfo()
+            ]
+        ),
+    ]
+)
+frame4 = Ether(src="00:00:00:00:00:02", dst="00:00:00:00:00:04") / Dot1Q(vlan=1000) / listenerEnhancedFirstValueMinimal
+
+
+# sendp(frame1, iface="h2-eth0")

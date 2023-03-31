@@ -1,0 +1,436 @@
+# -----------------------------------------------------------
+#
+#  zeek_tsn.spicy
+#
+# This file includes the preparation for type conversion from Spicy data types to Zeek data types.
+#
+# (C) 2022 Robin Schenderlein, Hamburg, Germany
+# Released under GNU Public License (GPL)
+# email robin.schenderlein@studium.uni-hamburg.de
+# -----------------------------------------------------------
+
+module Zeek_TSN;
+
+import zeek;
+import SRP;
+import FRER;
+
+#on SRP::SRPFrame::%done {
+#    zeek::confirm_protocol();
+#} # Do not enable, causes errors. Try again at the end
+
+#on FRER::CBFrame::%done {
+#    zeek::confirm_protocol();
+#} # Do not enable, causes errors. Try again at the end
+
+type CBFrame = uint16;
+
+type InterfaceID = tuple<
+	macAddress     : bytes,
+	interfaceName  : bytes
+	>;
+
+type EndStationInterfaces = vector<InterfaceID>;
+
+type StreamID = tuple<
+	macAddress  : bytes,
+	uniqueID    : uint16
+ >;
+
+type Talker = tuple<
+	streamID                   : StreamID,
+	streamRank                 : StreamRank,
+	endStationInterfaces       : optional<EndStationInterfaces>,
+	dataFrameSpecification     : optional<DataFrameSpecification>,
+	trafficSpecification       : TrafficSpecification,
+	tSpecTimeAware             : optional<TSpecTimeAware>,
+	userToNetworkRequirements  : optional<UserToNetworkRequirements>,
+	interfaceCapabilities      : optional<InterfaceCapabilities>
+>;
+
+type StreamRank = uint8;
+
+type IEEE802MacAddresses = tuple<
+	destinationMacAddress  : bytes,
+	sourceMacAddress       : bytes
+>;
+
+type IEEE802VlanTag = tuple<
+	priorityCodePoint : uint8,
+	vlanId            : uint16
+>;
+
+type IPTuple = tuple<
+	sourceIpAddress       : addr,
+	destinationIpAddress  : addr,
+	dscp                  : uint8,
+	protocol              : uint16,
+	sourcePort            : uint16,
+	destinationPort       : uint16
+>;
+
+type DataFrameSpecification = tuple<
+	ieee802MacAddresses  : optional<IEEE802MacAddresses>,
+	ieee802VlanTag       : optional<IEEE802VlanTag>,
+	ipv4Tuple            : optional<IPTuple>,
+	ipv6Tuple            : optional<IPTuple>
+>;
+
+type TrafficSpecification = tuple<
+	intervalNumerator      : uint32,
+	intervalDenominator    : uint32,
+	maxFramesPerInterval   : uint16,
+	maxFrameSize           : uint16,
+	transmissionSelection  : uint8
+>;
+
+type TSpecTimeAware = tuple<
+	earliestTransmitOffset  : uint32,
+	latestTransmitOffset    : uint32,
+	jitter                  : uint32
+>;
+
+type UserToNetworkRequirements = tuple<
+	numSeamlessTrees  : uint8,
+	maxLatency        : uint32
+>;
+
+type InterfaceCapabilities = tuple<
+	vlanTagCapable        : uint8,
+	numITL                : uint8,
+	numSTL                : uint8,
+	cbStreamIdenTypeList  : vector<uint32>,
+	cbSequenceTypeList    : vector<uint32>
+>;
+
+type StatusInfo = tuple<
+	talkerStatus    : SRP::EnumTalkerStatus,
+	listenerStatus  : SRP::EnumListenerStatus,
+	failureCode     : uint8
+>;
+
+type AccumulatedLatency = uint32;
+
+type InterfaceConfigurations = vector<InterfaceConfiguration>;
+
+type InterfaceConfiguration = tuple<
+	interfaceID          : InterfaceID,
+	ieee802MacAddresses  : optional<IEEE802MacAddresses>,
+	ieee802VlanTag       : optional<IEEE802VlanTag>,
+	ipv4Tuple            : optional<IPTuple>,
+	ipv6Tuple            : optional<IPTuple>,
+	timeAwareOffset      : optional<TimeAwareOffset>
+>;
+
+type TimeAwareOffset = uint32;
+
+type FailedInterfaces = vector<InterfaceID>;
+
+
+type Status = tuple<
+	statusInfo               : StatusInfo,
+	accumulatedLatency       : AccumulatedLatency,
+	interfaceConfigurations  : optional<InterfaceConfigurations>,
+	failedInterfaces         : optional<FailedInterfaces>
+>;
+
+type StatusGroup = tuple<
+	statusInfo               : StatusInfo,
+	interfaceConfigurations  : optional<InterfaceConfigurations>,
+	failedInterfaces         : optional<FailedInterfaces>
+>;
+
+type TalkerEnhanced_FirstValue = tuple<
+	talker  : Talker,
+	status  : Status
+>;
+
+type ListenerEnhanced_FirstValue = tuple<
+	listener  : Listener,
+	statusGroup  : StatusGroup
+>;
+
+type Listener = tuple<
+	streamID                   : StreamID,
+	endStationInterfaces       : optional<EndStationInterfaces>,
+	userToNetworkRequirements  : optional<UserToNetworkRequirements>,
+	interfaceCapabilities      : optional<InterfaceCapabilities>
+>;
+
+function makeListener(obj: SRP::Listener): Zeek_TSN::Listener
+{
+	local lendStationInterfaces       : optional<EndStationInterfaces>;
+	local luserToNetworkRequirements  : optional<UserToNetworkRequirements>;
+	local linterfaceCapabilities      : optional<InterfaceCapabilities>;
+	if (obj?.endStationInterfaces)       lendStationInterfaces       = makeEndStationInterfaces(obj.endStationInterfaces);
+	if (obj?.userToNetworkRequirements)  luserToNetworkRequirements  = makeUserToNetworkRequirements(obj.userToNetworkRequirements);
+	if (obj?.interfaceCapabilities)      linterfaceCapabilities      = makeInterfaceCapabilities(obj.interfaceCapabilities);
+	return (
+		makeStreamID(obj.streamID),
+		lendStationInterfaces,
+		luserToNetworkRequirements,
+		linterfaceCapabilities
+	);
+}
+
+public function makeCBFrame(obj: FRER::CBFrame): Zeek_TSN::CBFrame
+{
+	return (
+		obj.sequenceNumber
+	);
+}
+
+public function makeListenerEnhanced_FirstValue(obj: SRP::ListenerEnhanced_FirstValue): Zeek_TSN::ListenerEnhanced_FirstValue
+{
+	return (
+		makeListener(obj.listener),
+		makeStatusGroup(obj.status)
+	);
+}
+
+public function makeTalkerEnhanced_FirstValue(obj: SRP::TalkerEnhanced_FirstValue): Zeek_TSN::TalkerEnhanced_FirstValue
+{
+	return (
+		makeTalker(obj.talker),
+		makeStatus(obj.status)
+	);
+}
+
+function makeStatusGroup(obj: SRP::Status): Zeek_TSN::StatusGroup
+{
+	local linterfaceConfigurations:    optional<InterfaceConfigurations>;
+	local lfailedInterfaces:           optional<FailedInterfaces>;
+	if (obj?.interfaceConfigurations)  linterfaceConfigurations = makeInterfaceConfigurations(obj.interfaceConfigurations);
+	if (obj?.failedInterfaces)         lfailedInterfaces        = makeFailedInterfaces(obj.failedInterfaces);
+	return (
+		makeStatusInfo(obj.statusInfo),
+		linterfaceConfigurations,
+		lfailedInterfaces
+	);
+}
+
+function makeStatus(obj: SRP::Status): Zeek_TSN::Status
+{
+	local linterfaceConfigurations:    optional<InterfaceConfigurations>;
+	local lfailedInterfaces:           optional<FailedInterfaces>;
+	if (obj?.interfaceConfigurations)  linterfaceConfigurations  = makeInterfaceConfigurations(obj.interfaceConfigurations);
+	if (obj?.failedInterfaces)         lfailedInterfaces         = makeFailedInterfaces(obj.failedInterfaces);
+	return (
+		makeStatusInfo(obj.statusInfo),
+		makeAccumulatedLatency(obj.accumulatedLatency),
+		linterfaceConfigurations,
+		lfailedInterfaces
+	);
+}
+
+function makeFailedInterfaces(obj: SRP::FailedInterfaces): Zeek_TSN::FailedInterfaces
+{
+	return (
+		[makeInterfaceID(i) for i in obj.failedInterfaces]
+	);
+}
+
+function makeTimeAwareOffset(obj: SRP::TimeAwareOffset): Zeek_TSN::TimeAwareOffset
+{
+	return (
+		obj.timeAwareOffset
+	);
+}
+
+function makeInterfaceConfiguration(obj: SRP::InterfaceConfiguration): Zeek_TSN::InterfaceConfiguration
+{
+	local lieee802MacAddresses:  optional<IEEE802MacAddresses>;
+	local lieee802VlanTag:       optional<IEEE802VlanTag>;
+	local lipv4Tuple:            optional<IPTuple>;
+	local lipv6Tuple:            optional<IPTuple>;
+	local ltimeAwareOffset:      optional<TimeAwareOffset>;
+	if (obj?.ieee802MacAddresses) lieee802MacAddresses = makeIEEE802MacAddresses(obj.ieee802MacAddresses);
+	if (obj?.ieee802VlanTag)      lieee802VlanTag      = makeIEEE802VlanTag(obj.ieee802VlanTag);
+	if (obj?.ipv4Tuple)           lipv4Tuple           = makeIPv4Tuple(obj.ipv4Tuple);
+	if (obj?.ipv6Tuple)           lipv6Tuple           = makeIPv6Tuple(obj.ipv6Tuple);
+	if (obj?.timeAwareOffset)     ltimeAwareOffset     = makeTimeAwareOffset(obj.timeAwareOffset);
+	return (
+		makeInterfaceID(obj.interfaceID),
+		lieee802MacAddresses,
+		lieee802VlanTag,
+		lipv4Tuple,
+		lipv6Tuple,
+		ltimeAwareOffset
+	);
+}
+
+function makeInterfaceConfigurations(obj: SRP::InterfaceConfigurations): Zeek_TSN::InterfaceConfigurations
+{
+	return (
+		[makeInterfaceConfiguration(i) for i in obj.interfaceConfigurations]
+	);
+}
+
+function makeAccumulatedLatency(obj: SRP::AccumulatedLatency): Zeek_TSN::AccumulatedLatency
+{
+	return (
+		obj.accumulatedLatency
+	);
+}
+
+function makeStatusInfo(obj: SRP::StatusInfo): Zeek_TSN::StatusInfo
+{
+	return (
+		obj.talkerStatus,
+		obj.listenerStatus,
+		obj.failureCode
+	);
+}
+
+function makeInterfaceCapabilities(obj: SRP::InterfaceCapabilities): Zeek_TSN::InterfaceCapabilities
+{
+	return (
+		obj.vlan.vlanTagCapable,
+		obj.numITL,
+		obj.numSTL,
+		obj.cbStreamIdenTypeList,
+		obj.cbSequenceTypeList
+	);
+}
+
+function makeUserToNetworkRequirements(obj: SRP::UserToNetworkRequirements): Zeek_TSN::UserToNetworkRequirements
+{
+	return (
+		obj.numSeamlessTrees,
+		obj.maxLatency
+	);
+}
+
+function makeTSpecTimeAware(obj: SRP::TSpecTimeAware): Zeek_TSN::TSpecTimeAware
+{
+	return (
+		obj.earliestTransmitOffset,
+		obj.latestTransmitOffset,
+		obj.jitter
+	);
+}
+
+function makeTrafficSpecification(obj: SRP::TrafficSpecification): Zeek_TSN::TrafficSpecification
+{
+	return (
+		obj.intervalNumerator,
+		obj.intervalDenominator,
+		obj.maxFramesPerInterval,
+		obj.maxFrameSize,
+		obj.transmissionSelection
+	);
+}
+
+function makeDataFrameSpecification(obj: SRP::DataFrameSpecification): Zeek_TSN::DataFrameSpecification
+{
+	local lieee802MacAddresses:  optional<IEEE802MacAddresses>;
+	local lieee802VlanTag:       optional<IEEE802VlanTag>;
+	local lipv4Tuple:            optional<IPTuple>;
+	local lipv6Tuple:            optional<IPTuple>;
+	if (obj?.ieee802MacAddresses) lieee802MacAddresses = makeIEEE802MacAddresses(obj.ieee802MacAddresses);
+	if (obj?.ieee802VlanTag)      lieee802VlanTag      = makeIEEE802VlanTag(obj.ieee802VlanTag);
+	if (obj?.ipv4Tuple)           lipv4Tuple           = makeIPv4Tuple(obj.ipv4Tuple);
+	if (obj?.ipv6Tuple)           lipv6Tuple           = makeIPv6Tuple(obj.ipv6Tuple);
+	return (
+		lieee802MacAddresses,
+		lieee802VlanTag,
+		lipv4Tuple,
+		lipv6Tuple
+	);
+}
+
+function makeIPv6Tuple(obj: SRP::IPv6Tuple): Zeek_TSN::IPTuple
+{
+	return (
+		obj.sourceIpAddress,
+		obj.destinationIpAddress,
+		obj.dscp,
+		obj.protocol,
+		obj.sourcePort,
+		obj.destinationPort
+	);
+}
+
+function makeIPv4Tuple(obj: SRP::IPv4Tuple): Zeek_TSN::IPTuple
+{
+	return (
+		obj.sourceIpAddress,
+		obj.destinationIpAddress,
+		obj.dscp,
+		obj.protocol,
+		obj.sourcePort,
+		obj.destinationPort
+	);
+}
+
+function makeIEEE802VlanTag(obj: SRP::IEEE802VlanTag): Zeek_TSN::IEEE802VlanTag
+{
+	return (
+		obj.priorityCodePoint,
+		obj.vlanId
+	);
+}
+
+function makeIEEE802MacAddresses(obj: SRP::IEEE802MacAddresses): Zeek_TSN::IEEE802MacAddresses
+{
+	return (
+		obj.destinationMacAddress,
+		obj.sourceMacAddress
+	);
+}
+
+function makeEndStationInterfaces(obj: SRP::EndStationInterfaces): vector<Zeek_TSN::InterfaceID>
+{
+	return (
+		[makeInterfaceID(i) for i in obj.endStationInterfaces]
+	);
+}
+
+function makeInterfaceID(obj: SRP::InterfaceID): Zeek_TSN::InterfaceID
+{
+	return (
+		obj.macAddress,
+		obj.interfaceName
+	);
+}
+
+function makeTalker(obj: SRP::Talker): Zeek_TSN::Talker
+{
+	local lendStationInterfaces:       optional<EndStationInterfaces>;
+	local ldataFrameSpecification:     optional<DataFrameSpecification>;
+	local ltSpecTimeAware:             optional<TSpecTimeAware>;
+	local luserToNetworkRequirements:  optional<UserToNetworkRequirements>;
+	local linterfaceCapabilities:      optional<InterfaceCapabilities>;
+	if (obj?.endStationInterfaces)       lendStationInterfaces       = makeEndStationInterfaces(obj.endStationInterfaces);
+	if (obj?.dataFrameSpecification)     ldataFrameSpecification     = makeDataFrameSpecification(obj.dataFrameSpecification);
+	if (obj?.tSpecTimeAware)             ltSpecTimeAware             = makeTSpecTimeAware(obj.tSpecTimeAware);
+	if (obj?.userToNetworkRequirements)  luserToNetworkRequirements  = makeUserToNetworkRequirements(obj.userToNetworkRequirements);
+	if (obj?.interfaceCapabilities)      linterfaceCapabilities      = makeInterfaceCapabilities(obj.interfaceCapabilities);
+	return (
+		makeStreamID(obj.streamID),
+		makeStreamRank(obj.streamRank),
+		lendStationInterfaces,
+		ldataFrameSpecification,
+		makeTrafficSpecification(obj.trafficSpecification),
+		ltSpecTimeAware,
+		luserToNetworkRequirements,
+		linterfaceCapabilities
+	);
+}
+
+function makeStreamRank(obj: SRP::StreamRank): Zeek_TSN::StreamRank
+{
+	return (
+		obj.streamRank.rank
+	);
+}
+
+function makeStreamID(obj: SRP::StreamID): Zeek_TSN::StreamID
+{
+	return (
+		obj.macAddress,
+		obj.uniqueID
+	);
+}
+
+# TODO make bit fields to bool

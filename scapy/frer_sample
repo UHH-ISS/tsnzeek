@@ -1,0 +1,3 @@
+x = Ether(src="00:00:00:00:00:02", dst="00:00:00:00:00:04") / Dot1Q(vlan=1000) / CB(sequence_nr=5555)
+
+# sendp(x, iface="h2-eth0")

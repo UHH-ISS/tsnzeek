@@ -1,0 +1,338 @@
+# -----------------------------------------------------------
+#
+#  srp.spicy --- IEEE 802.1Qcc Enhancements to SRP support for Spicy
+#
+# This file adds the grammar for the TalkerEnhanced_FirstValue message 
+# and for the ListenerEnhanced_FirstValue message.
+#
+# (C) 2022 Robin Schenderlein, Hamburg, Germany
+# Released under GNU Public License (GPL)
+# email robin.schenderlein@studium.uni-hamburg.de
+# -----------------------------------------------------------
+
+module SRP;
+
+import spicy;
+
+public type SRPFrame = unit {
+	tlvType:  uint8 &convert=SrpTlvTypeCode($$);
+	switch (self.tlvType) {
+		SrpTlvTypeCode::Talker   -> talkerEnhanced_FirstValue:    TalkerEnhanced_FirstValue;
+		SrpTlvTypeCode::Listener -> listenerEnhanced_FirstValue:  ListenerEnhanced_FirstValue;
+		* -> void;
+	};
+	on %done { print "Done";}
+	on %init { print "SRPFrame recieved"; }
+	on %error { print "Error SRPFrame"; print self; }
+};
+
+type TalkerEnhanced_FirstValue = unit {
+	talker:  Talker;
+	status:  Status(True);
+	on %error { print "Error TalkerEnhanced_FirstValue"; }
+};
+
+type ListenerEnhanced_FirstValue = unit {
+	listener:  Listener;
+	status:    Status(False);
+	on %error { print "Error ListenerEnhanced_FirstValue"; }
+};
+
+type Talker = unit {
+	talkerLen:   uint8;
+	streamID:    StreamID;
+	streamRank:  StreamRank;
+	switch {
+		  -> endStationInterfaces : EndStationInterfaces;
+		* -> : void { print "no endStationInterfaces"; }
+	};
+	switch {
+		  -> dataFrameSpecification : DataFrameSpecification;
+		* -> : void { print "no dataFrameSpecification"; }
+	};
+	trafficSpecification:         TrafficSpecification;
+	switch {
+		  -> tSpecTimeAware:       TSpecTimeAware;
+		* -> : void { print "no tSpecTimeAware"; }
+	};
+	switch {
+		  -> userToNetworkRequirements:  UserToNetworkRequirements;
+		* -> : void { print "no userToNetworkRequirements"; }
+	};
+	switch {
+		  -> interfaceCapabilities:      InterfaceCapabilities;
+		* -> : void { print "no interfaceCapabilities"; }
+	};
+	on %error { print "Error Talker"; }
+};
+
+type StreamID = unit {
+	 :           uint8(2) &convert=SrpTlvTypeCode($$);
+	 :           uint8;
+	macAddress:  bytes &size=6;
+	uniqueID:    uint16;
+	on %error { print "Error StreamID"; }
+};
+
+type StreamRank = unit {
+	 :             uint8(3) &convert=SrpTlvTypeCode($$);
+	 :             uint8;
+	streamRank:    bitfield(8) {
+		reserved: 1..7;
+		rank: 0;
+		};
+	on %error { print "Error StreamRank"; }
+};
+
+type EndStationInterfaces = unit {
+	 :                     uint8(4) &convert=SrpTlvTypeCode($$);
+	len:                   uint8;
+	endStationInterfaces:  InterfaceID[] &size=self.len;
+	on %error { print "Error EndStationInterfaces";}
+};
+
+type InterfaceID = unit {
+	 :              uint8(5) &convert=SrpTlvTypeCode($$);
+	len:            uint8;
+	macAddress:     bytes &size=6;
+	interfaceName:  bytes &size=self.len - 6;
+	on %error { print "Error InterfaceID"; }
+};
+
+type DataFrameSpecification = unit {
+	 :  uint8(6) &convert=SrpTlvTypeCode($$);
+	 :  uint8;
+	switch {
+		  -> ieee802MacAddresses : IEEE802MacAddresses;
+		* -> : void { print "no data frame spec ieee802MacAddresses"; }
+	};
+	switch {
+		  -> ieee802VlanTag : IEEE802VlanTag;
+		* -> : void { print "no data frame spec ieee802VlanTag"; }
+	};
+	switch {
+		  -> ipv4Tuple : IPv4Tuple;
+		* -> : void { print "no data frame spec ipv4Tuple"; }
+	};
+	switch {
+		  -> ipv6Tuple : IPv6Tuple;
+		* -> : void { print "no data frame spec ipv6Tuple"; }
+	};
+	on %error { print "Error DataFrameSpecification"; }
+};
+
+type IEEE802MacAddresses = unit {
+	 :                      uint8(7) &convert=SrpTlvTypeCode($$);
+	 :                      uint8;
+	destinationMacAddress:  bytes &size=6;
+	sourceMacAddress:       bytes &size=6;
+	on %error { print "Error IEEE802MacAddresses"; }
+};
+
+type IEEE802VlanTag = unit {
+	 :                  uint8(8) &convert=SrpTlvTypeCode($$);
+	 :                  uint8;
+	priorityCodePoint:  uint8;
+	vlanId:             uint16;
+	on %error { print "Error IEEE802VlanTag"; }
+};
+
+type IPv4Tuple = unit {
+	 :                     uint8(9) &convert=SrpTlvTypeCode($$);
+	 :                     uint8;
+	sourceIpAddress:       addr &ipv4;
+	destinationIpAddress:  addr &ipv4;
+	dscp:                  uint8;
+	protocol:              uint16;
+	sourcePort:            uint16;
+	destinationPort:       uint16;
+	on %error { print "Error IPv4Tuple"; }
+};
+
+type IPv6Tuple = unit {
+	 :                     uint8(10) &convert=SrpTlvTypeCode($$);
+	 :                     uint8;
+	sourceIpAddress:       addr &ipv6;
+	destinationIpAddress:  addr &ipv6;
+	dscp:                  uint8;
+	protocol:              uint16;
+	sourcePort:            uint16;
+	destinationPort:       uint16;
+	on %error { print "Error IPv6Tuple"; }
+};
+
+type TrafficSpecification = unit {
+	 :                      uint8(11) &convert=SrpTlvTypeCode($$);
+	 :                      uint8;
+	intervalNumerator:      uint32;
+	intervalDenominator:    uint32;
+	maxFramesPerInterval:   uint16;
+	maxFrameSize:           uint16;
+	transmissionSelection:  uint8;
+	on %error { print "Error TrafficSpecification"; }
+};
+
+type TSpecTimeAware = unit {
+	 :                       uint8(12) &convert=SrpTlvTypeCode($$);
+	 :                       uint8;
+	earliestTransmitOffset:  uint32;
+	latestTransmitOffset:    uint32;
+	jitter:                  uint32;
+	on %error { print "Error TSpecTimeAware"; }
+};
+
+type UserToNetworkRequirements = unit {
+	 :                 uint8(13) &convert=SrpTlvTypeCode($$);
+	 :                 uint8;
+	numSeamlessTrees:  uint8;
+	maxLatency:        uint32;
+	on %error { print "Error UserToNetworkRequirements"; }
+};
+
+type InterfaceCapabilities = unit {
+	 :                     uint8(14) &convert=SrpTlvTypeCode($$);
+	 :                     uint8;
+	vlan:  bitfield(8) {
+		reserved : 1..7;
+		vlanTagCapable: 0;
+		};
+	numITL:                uint8;
+	numSTL:                uint8;
+	cbStreamIdenTypeList:  uint32[] &size=self.numITL * 4;
+	cbSequenceTypeList:    uint32[] &size=self.numSTL * 4;
+	on %error { print "Error InterfaceCapabilities"; }
+};
+
+type Listener = unit {
+	talkerLen :  uint8;
+	streamID:    StreamID;
+	switch {
+		  -> endStationInterfaces : EndStationInterfaces;
+		* -> : void { print "no endStationInterfaces"; }
+	};
+	switch {
+		  -> userToNetworkRequirements:  UserToNetworkRequirements;
+		* -> : void { print "no userToNetworkRequirements"; }
+	};
+	switch {
+		  -> interfaceCapabilities:      InterfaceCapabilities;
+		* -> : void { print "no interfaceCapabilities"; }
+	};
+	on %error { print "Error Listener"; }
+};
+
+type Status = unit(isTalker: bool) {
+	code:                    uint8(16) &convert=SrpTlvTypeCode($$);
+	statusLen :              uint8;
+	statusInfo:              StatusInfo;
+	accumulatedLatency:      AccumulatedLatency if (isTalker);
+	tlvT1: bytes &eod &size=1;
+	switch (self.tlvT1) {
+		b"\x15" -> failedInterfaces: FailedInterfaces;
+		b"\x13" -> {interfaceConfigurations: InterfaceConfigurations;
+					tlvT2: bytes &eod &size=1 {if (self.tlvT2==b"") self.tlvT2=b"0";}
+					failedInterfaces: FailedInterfaces if (self.tlvT2==b"\x15");
+		}
+		b"" -> : void;
+	};
+	on %error { print "Error Status"; }
+};
+
+type StatusInfo = unit {
+	 :               uint8(17) &convert=SrpTlvTypeCode($$);
+	 :               uint8;
+	talkerStatus:    uint8 &convert=EnumTalkerStatus($$);
+	listenerStatus:  uint8 &convert=EnumListenerStatus($$);
+	failureCode:     uint8;
+	on %error { print "Error StatusInfo"; }
+};
+
+type AccumulatedLatency = unit {
+	 :                   uint8(18) &convert=SrpTlvTypeCode($$);
+	 :                   uint8;
+	accumulatedLatency:  uint32;
+	on %error { print "Error AccumulatedLatency"; }
+};
+
+type InterfaceConfigurations = unit {
+	len :                     uint8;
+	interfaceConfigurations:  InterfaceConfiguration[] &size=self.len;
+	on %error { print "Error InterfaceConfigurations"; }
+};
+
+type InterfaceConfiguration = unit {
+	interfaceID: InterfaceID;
+	switch {
+		  -> ieee802MacAddresses : IEEE802MacAddresses;
+		* -> : void { print "no iface config ieee802MacAddresses"; }
+	};
+	switch {
+		  -> ieee802VlanTag : IEEE802VlanTag;
+		* -> : void { print "no iface config ieee802VlanTag"; }
+	};
+	switch {
+		  -> ipv4Tuple : IPv4Tuple;
+		* -> : void { print "no iface config ipv4Tuple"; }
+	};
+	switch {
+		  -> ipv6Tuple : IPv6Tuple;
+		* -> : void { print "no iface config ipv6Tuple"; }
+	};
+	switch {
+		  -> timeAwareOffset : TimeAwareOffset;
+		* -> : void { print "no iface config timeAwareOffset"; }
+	};
+	on %error { print "Error InterfaceConfiguration"; }
+};
+
+type TimeAwareOffset = unit {
+	 :                uint8(20) &convert=SrpTlvTypeCode($$);
+	 :                uint8;
+	timeAwareOffset:  uint32;
+	on %error { print "Error TimeAwareOffset"; }
+};
+
+type FailedInterfaces = unit {
+	len:               uint8;
+	failedInterfaces:  InterfaceID[] &size=self.len;
+	on %error { print "Error FailedInterfaces"; }
+};
+
+type SrpTlvTypeCode = enum {
+	Talker = 1,
+	StreamID = 2,
+	StreamRank = 3,
+	EndStationInterfaces = 4,
+	InterfaceID = 5,
+	DataFrameSpecification = 6,
+	IEEE802MacAddresses = 7,
+	IEEE802VlanTag = 8,
+	IPv4Tuple = 9,
+	IPv6Tuple = 10,
+	TrafficSpecification = 11,
+	TSpecTimeAware = 12,
+	UserToNetworkRequirements = 13,
+	InterfaceCapabilities = 14,
+	Listener = 15,
+	Status = 16,
+	StatusInfo = 17,
+	AccumulatedLatency = 18,
+	InterfaceConfigurations = 19,
+	TimeAwareOffset = 20,
+	FailedInterfaces = 21
+};
+
+public type EnumTalkerStatus = enum {
+	NONE    = 0,
+	READY   = 1,
+	FAILED  = 2,
+};
+
+public type EnumListenerStatus = enum {
+	NONE           = 0,
+	READY          = 1,
+	PARTIALFAILED  = 2,
+	FAILED         = 3,
+};
+
+# TODO Could add more constraints to grammar
