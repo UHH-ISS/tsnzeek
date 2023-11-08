@@ -1,10 +1,10 @@
 ### TSNZeek: An Open-source Intrusion Detection System for IEEE 802.1 Time-sensitive Networking
 
-This repository includes files, instructions, and examples to recognize attacks against IEEE 802.1Qcc and IEEE 802.1CB. Samples and further instructions for testing can be found in each software folder.
+This repository includes files, instructions, and examples to recognize attacks against IEEE 802.1Qcc and IEEE 802.1CB. Samples and further instructions for testing can be found under individual subfolders.
 
-note: The versions mentioned below are updated and should be changed in this guideline as well.
+# Environment and Prerequisites
 
-# Environment
+## Environment 
 
 Scapy and Mininet need root to run. To avoid problems with `PATH`, create an alias for `sudo` that combines the users `PATH` and the path used by `root`. Use the alias to run Scapy and Mininet later.
 
