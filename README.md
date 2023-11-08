@@ -1,143 +1,121 @@
-### TSNZeek: An Open-source Intrusion Detection System for IEEE 802.1 Time-sensitive Networking
+# TSNZeek: An Open-source Intrusion Detection System for IEEE 802.1 Time-sensitive Networking
 
-This repository includes files, instructions, and examples to recognize attacks against IEEE 802.1Qcc and IEEE 802.1CB. Samples and further instructions for testing can be found under individual subfolders.
+This repository includes files, instructions, and examples to recognize attacks against IEEE 802.1Qcc and IEEE 802.1CB. Samples and further instructions for testing can be found under individual subfolders. 
 
-# Environment and Prerequisites
+You can follow this guideline to install the required versions of Zeek-related components to eventually run TSNZeek.
 
-## Environment 
+## Prerequisites and Environment
 
-Scapy and Mininet need root to run. To avoid problems with `PATH`, create an alias for `sudo` that combines the users `PATH` and the path used by `root`. Use the alias to run Scapy and Mininet later.
+### Dependencies
 
+TSNZeek requires installing the core components (i) Zeek (v4.1.1), (ii) spicy (v1.4.0), (iii) spicy-plugin (v1.3.1), and (iv) Zeek broker (commit 8493e17). Besides, for testing and simulating a TSN environment, you can also install (v) mininet and (vi) scapy. To install the dependencies of the core components, you can run (in a Debian-based system):
+```sh
+sudo apt-get install cmake libpcap-dev libssl-dev swig
+```
+Besides, the broker (iv) requires Python 3.9 (instead of a later version). You can compile it from the source code following [this guideline](https://linuxize.com/post/how-to-install-python-3-9-on-debian-10/). Note that this compilation requires to enable linking by setting the flag `--enable-shared` on the configuration script. Then, you can whether set your default Python version to 3.9 or use the Python 3.9 binary explicitly during the installationg of the broker (iv).
+
+### Environment
+
+Several components in the TSNZeek environment (e.g., mininet and scapy) requires root permissions, and they should access to the installed Zeek components within `sudo` environment. The following command helps you to import the necessary environment variable `PATH` into the  `sudo` environment:
 ```sh
 alias esudo='sudo -E env PATH=$PATH:$(sudo printenv PATH)'
 ```
+You can also set another environmental varible to indicate the full path of this project following the command:
+```sh
+export TSNZEEK_PATH=<the-full-path-of-this-project>
+```
+It is recommended to fetch and install all core components (i-iv) under the same folder, e.g., `/usr/local/src`, for an easier installation.
 
-# Zeek
+## Zeek Installation
 
-Zeek is used as the IDS to analyze frames and to detect attacks.
-
-## Installation
-
-Install Zeek 4.1.1 by following [these](https://docs.zeek.org/en/master/install.html) instructions or copy the lines below to build Zeek manually. If you run multiple instances of Zeek, change the install path with `./configure  --prefix=/usr/local/zeek-4.1.1`. If you do not constantly hop between versions of Zeek, you can also change the prefix to '/usr/local'. This will put the Zeek binaries under `/usr/local/bin`, making changes to `PATH` unnecessary.
-Writing and modifying files in `/usr/local` requires root privileges. Consider using `su` during the installation process.
-
+Zeek (i) is an open-source security monitoring and intrusion detection tool. TSNZeek extends the Zeek v4.1.1 with further packet processing and intrusion detection functions for IEEE TSN protocols. Next, you will install the respective version of Zeek. Note that, depending on the installation path you select, it may require root privileges (e.g., `/usr/local/src` folder below). Accordingly, you can run the following commands with `sudo` or `esudo`, or simply switch to `su` environment:
 ```sh
 cd /usr/local/src
 git clone --recursive https://github.com/zeek/zeek
 cd zeek
 git checkout v4.1.1
 git submodule update --recursive
-./configure
-make
-make install
+./configure --disable-python
+make -j
+make install -j
 ```
 
-Depending on the way chosen to install Zeek, it needs to be added to `PATH`.
+Lastly, Zeek binary should be added to the environment variable `PATH` with the following command:
 ```sh
 export PATH="$PATH:/usr/local/zeek/bin"
 ```
-Other solutions to run Zeek with root could include adding Zeeks installation path to `secure_path`:
-Type `sudo visudo`, enable `secure_path` and add `:/usr/local/zeek/bin/` to `secure_path`.
 
-Zeek version 4.2.0 introduces some braking changes. The Zeek extension has not been tested with Zeek 4.2.0. 
+## spicy Installation
 
-## Zeek Plugin
+spicy enables developing a new parser grammar for Zeek. This grammer then helps to parse the extended Ethernet frames for IEEE TSN protocols. You should install (a) the main parser and (b) the Zeek plugin, separately.
 
-This plugin is not required anymore. It can be compiled to add a Zeek Plugin. It does not include much functionality.
-The documentation for this plugin is in its own [repositiory](https://git.informatik.uni-hamburg.de/5schende/zeek-tsn-plugin).
+### Grammmar
 
-
-## Spicy
-
-Spicy is a parser for grammar. It is used to develop and test the created grammar.
-
-### Installation
+The following commands help to install the main parser spicy v1.4.0, which TSNZeek particularly requires:
 ```sh
 git clone --recursive https://github.com/zeek/spicy
-git checkout v1.3.0
+git checkout v1.4.0
 git submodule update --recursive
-./configure && make
+./configure
+make -j
 sudo make install
 ```
+### Plugin
 
-### Spicy Plugin Installation
-
-The Spicy plugin for Zeek makes Spicy parsers accessible to Zeek.
-
-### Installation
+Zeek requires a plugin to use spicy parsers. The following commands help to install the plugin v1.3.1, which TSNZeek particularly requires. Note that you should set the path prefix for the spicy below, depending on where you cloned and installed the spicy project (e.g., `/usr/local/src/` in the command below).
 
 ```sh
 git clone https://github.com/zeek/spicy-plugin.git
 cd spicy-plugin/
 mkdir build
 cd build
-cmake -DCMAKE_INSTALL_PREFIX=/usr/local/spicy .. && make -j
+cmake -DCMAKE_INSTALL_PREFIX=/usr/local/src/spicy/ ..
+make -j
 make -C tests
-esudo make -C build install
+make -C build install
 ```
 
-Add `/usr/local/spicy/bin` to `PATH`.
+Lastly, spicy binary should be added to the environment variable `PATH` with the following command (depending on where you install it):
+```sh
+export PATH="$PATH:/usr/local/spicy/bin"
+```
+## Broker Installation
 
-## Zeek Broker
-
-The Zeek Broker is used to transfer data to a python script that handles some logic for detecting attacks.
-
-### Installation
-
-Python can not import the broker for some reason, which the Zeek install script should install. Therefore install the broker into the python virtual environment. Ensure the virtual environment is loaded.
+The broker helps to export the parsed network packets (i.e., Ethernet frames) to any external modules (e.g., an intrusion detection module) for further processing. To install the broker version that TSNZeek requires, you can follow the commands below:
 
 ```sh
 git clone --recursive https://github.com/zeek/broker.git
 cd broker
 git checkout 8493e17
 git submodule update --recursive
-./configure --prefix=$THESIS/broker --python-prefix=$(python -c 'import sys; print(sys.exec_prefix)')
+./configure --prefix=$TSNZEEK_PATH/broker --python-prefix=$(python -c 'import sys; print(sys.exec_prefix)')
 make install
 ```
+Note that if Python 3.9 is not the main Python version on your system, you need to set the flag `--with-python=<full-path-to-python3.9-binary>` while running the configuration script.
 
-`8493e17` is the commit id used for the broker repository by Zeek 4.1.1.
-Test successful install with the following command and see if the path fits your requirements.
+Lastly, you can test the broker installation via:
 ```sh
 python -c 'import broker; print(broker.__file__)'
 ```
 
-# Scapy
+## Other Components
 
-Scapy is used in this project to forge and send SRP and FRER frames.
+### Scapy
 
-## Installation
-
-Install scapy with the following lines:
+Scapy is a Python-based networking framework to create packets for several network protocols. You can use it to forge FRER and SRP frames to test TSNZeek via the scripts in this project. The following command simply installs it:
 
 ```sh
-source $HOME/env/bin/activate
 pip install --pre scapy[basic]
 ```
-Optionally make the script executable by executing `chmod u+x CB.py`.
 
-# Mininet
+### Mininet
 
-Mininet creates the network over which the frames get sent by emulating network components.
-
-## Installation
-
-Install mininet into the previously created python virtual environment.
+Mininet is a network emulator and the native test environment for Zeek. You can install it via:
 ```sh
-source $HOME/env/bin/activate
 cd /usr/local/src/
 git clone git://github.com/mininet/mininet
 cd mininet
 git checkout 2.3.0
+PYTHON=$HOME/env/bin/python3 ./util/install.sh -s <installation-path>/mininet -n
 ```
-For debian sytems using python3 the install scipt is wonky. For a quick fix change line 176 of `mininet/util/install.sh` to `pf=pyflakes3`.
-Continue installation with:
-```sh
-sudo PYTHON=$HOME/env/bin/python3 ./util/install.sh -s $HOME/mininet -n
-```
-
-You can start mininet with `esudo mn`. 
-
-To connect to the created hosts, you can use ssh. For convenience add your public ssh key to `authorized_keys`
-```sh
-cat .ssh/id_rsa.pub >> .ssh/authorized_keys
-```
+For further configuration and examples of Mininet, please refer to [its original webpage](https://mininet.org/).
