@@ -4,6 +4,20 @@ This repository includes files, instructions, and examples to recognize attacks 
 
 You can follow this guideline to install the required versions of Zeek-related components to eventually run TSNZeek.
 
+## Project Overview
+
+### Data Plane
+
+Under `spicy` folder, you can find the grammar definition files for each protocol, i.e., .1Qcc SRP and .1CB FRER.
+
+### Control Plane
+
+Under `zeek` folder, you can find the attack detection script for each attack defined under scapy-attack.py script.
+
+### Management Plane
+
+There is no management plance - you will implement it in Flask.
+
 ## Prerequisites and Environment
 
 ### Dependencies
