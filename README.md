@@ -6,6 +6,8 @@ You can follow this guideline to install the required versions of Zeek-related c
 
 ## Project Overview
 
+(Under construction)
+
 ### Data Plane
 
 Under `spicy` folder, you can find the grammar definition files for each protocol, i.e., .1Qcc SRP and .1CB FRER.
@@ -16,7 +18,7 @@ Under `zeek` folder, you can find the attack detection script for each attack de
 
 ### Management Plane
 
-There is no management plance - you will implement it in Flask.
+To be implemented to configure the existing intrusion detection function.
 
 ## Prerequisites and Environment
 
