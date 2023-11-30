@@ -93,7 +93,7 @@ make -C build install
 
 Lastly, spicy binary should be added to the environment variable `PATH` with the following command (depending on where you install it):
 ```sh
-export PATH="$PATH:/usr/local/spicy/bin"
+export PATH="$PATH:/usr/local/src/spicy/bin"
 ```
 ## Broker Installation
 
