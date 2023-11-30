@@ -42,7 +42,9 @@ export TSNZEEK_PATH=<the-full-path-of-this-project>
 ```
 It is recommended to fetch and install all core components (i-iv) under the same folder, e.g., `/usr/local/src`, for an easier installation.
 
-## Zeek Installation
+## Installation
+
+### Zeek Installation
 
 Zeek (i) is an open-source security monitoring and intrusion detection tool. TSNZeek extends the Zeek v4.1.1 with further packet processing and intrusion detection functions for IEEE TSN protocols. Next, you will install the respective version of Zeek. Note that, depending on the installation path you select, it may require root privileges (e.g., `/usr/local/src` folder below). Accordingly, you can run the following commands with `sudo` or `esudo`, or simply switch to `su` environment:
 ```sh
@@ -61,11 +63,11 @@ Lastly, Zeek binary should be added to the environment variable `PATH` with the 
 export PATH="$PATH:/usr/local/zeek/bin"
 ```
 
-## spicy Installation
+### spicy Installation
 
 spicy enables developing a new parser grammar for Zeek. This grammer then helps to parse the extended Ethernet frames for IEEE TSN protocols. You should install (a) the main parser and (b) the Zeek plugin, separately.
 
-### Grammmar
+#### Grammmar
 
 The following commands help to install the main parser spicy v1.4.0, which TSNZeek particularly requires:
 ```sh
@@ -76,7 +78,7 @@ git submodule update --recursive
 make -j
 sudo make install
 ```
-### Plugin
+#### Plugin
 
 Zeek requires a plugin to use spicy parsers. The following commands help to install the plugin v1.3.1, which TSNZeek particularly requires. Note that you should set the path prefix for the spicy below, depending on where you cloned and installed the spicy project (e.g., `/usr/local/src/` in the command below).
 
@@ -97,7 +99,7 @@ Lastly, spicy binary should be added to the environment variable `PATH` with the
 ```sh
 export PATH="$PATH:/usr/local/src/spicy/bin"
 ```
-## Broker Installation
+### Broker Installation
 
 The broker helps to export the parsed network packets (i.e., Ethernet frames) to any external modules (e.g., an intrusion detection module) for further processing. To install the broker version that TSNZeek requires, you can follow the commands below:
 
@@ -116,9 +118,9 @@ Lastly, you can test the broker installation via:
 python -c 'import broker; print(broker.__file__)'
 ```
 
-## Other Components
+### Other Components
 
-### Scapy
+#### Scapy
 
 Scapy is a Python-based networking framework to create packets for several network protocols. You can use it to forge FRER and SRP frames to test TSNZeek via the scripts in this project. The following command simply installs it:
 
@@ -126,7 +128,7 @@ Scapy is a Python-based networking framework to create packets for several netwo
 pip install --pre scapy[basic]
 ```
 
-### Mininet
+#### Mininet
 
 Mininet is a network emulator and the native test environment for Zeek. You can install it via:
 ```sh
