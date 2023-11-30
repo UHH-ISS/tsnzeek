@@ -44,7 +44,7 @@ It is recommended to fetch and install all core components (i-iv) under the same
 
 ## Installation
 
-### Zeek Installation
+### Zeek
 
 Zeek (i) is an open-source security monitoring and intrusion detection tool. TSNZeek extends the Zeek v4.1.1 with further packet processing and intrusion detection functions for IEEE TSN protocols. Next, you will install the respective version of Zeek. Note that, depending on the installation path you select, it may require root privileges (e.g., `/usr/local/src` folder below). Accordingly, you can run the following commands with `sudo` or `esudo`, or simply switch to `su` environment:
 ```sh
@@ -63,7 +63,7 @@ Lastly, Zeek binary should be added to the environment variable `PATH` with the 
 export PATH="$PATH:/usr/local/zeek/bin"
 ```
 
-### spicy Installation
+### spicy
 
 spicy enables developing a new parser grammar for Zeek. This grammer then helps to parse the extended Ethernet frames for IEEE TSN protocols. You should install (a) the main parser and (b) the Zeek plugin, separately.
 
@@ -99,7 +99,7 @@ Lastly, spicy binary should be added to the environment variable `PATH` with the
 ```sh
 export PATH="$PATH:/usr/local/src/spicy/bin"
 ```
-### Broker Installation
+### Broker
 
 The broker helps to export the parsed network packets (i.e., Ethernet frames) to any external modules (e.g., an intrusion detection module) for further processing. To install the broker version that TSNZeek requires, you can follow the commands below:
 
