@@ -139,3 +139,5 @@ git checkout 2.3.0
 PYTHON=$HOME/env/bin/python3 ./util/install.sh -s <installation-path>/mininet -n
 ```
 For further configuration and examples of Mininet, please refer to [its original webpage](https://mininet.org/).
+
+## Configuration
