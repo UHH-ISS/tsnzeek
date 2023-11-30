@@ -82,6 +82,8 @@ Zeek requires a plugin to use spicy parsers. The following commands help to inst
 
 ```sh
 git clone https://github.com/zeek/spicy-plugin.git
+git checkout v1.3.7
+git submodule update --recursive
 cd spicy-plugin/
 mkdir build
 cd build
