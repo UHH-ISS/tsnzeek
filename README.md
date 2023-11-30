@@ -80,7 +80,7 @@ sudo make install
 ```
 #### Plugin
 
-Zeek requires a plugin to use spicy parsers. The following commands help to install the plugin v1.3.1, which TSNZeek particularly requires. Note that you should set the path prefix for the spicy below, depending on where you cloned and installed the spicy project (e.g., `/usr/local/src/` in the command below).
+Zeek requires a plugin to use spicy parsers. The following commands help to install the plugin v1.3.7, which TSNZeek particularly requires. Note that you should set the path prefix for the spicy below, depending on where you cloned and installed the spicy project (e.g., `/usr/local/src/` in the command below).
 
 ```sh
 git clone https://github.com/zeek/spicy-plugin.git
