@@ -84,13 +84,14 @@ Zeek requires a plugin to use spicy parsers. The following commands help to inst
 
 ```sh
 git clone https://github.com/zeek/spicy-plugin.git
+cd spicy-plugin/
 git checkout v1.3.7
 git submodule update --recursive
-cd spicy-plugin/
 mkdir build
 cd build
 cmake -DCMAKE_INSTALL_PREFIX=/usr/local/src/spicy/ ..
 make -j
+cd ../
 make -C tests
 make -C build install
 ```
@@ -162,6 +163,6 @@ esudo zeek -C $TSNZEEK_PATH/spicy/spicy-analyzer/TSN.hlto $TSNZEEK_PATH/spicy/sp
 4. Sending packets to the interface that TSNZeek is attached via `scapy`:
 ```sh
 esudo python3 $TSNZEEK_PATH/scapy/CB.py
->> frer_packet = Ether(src="00:00:00:00:00:01", dst="00:00:00:00:00:02") / Dot1Q(vlan=0) / CB(sequence_nr=1)
+>> frer_packet = Ether(src="00:00:00:00:00:01", dst="00:00:00:00:00:02") / Dot1Q(vlan=150) / CB(sequence_nr=1)
 >> sendp(frer_packet, iface="<your-eth-interface>")
 ```
