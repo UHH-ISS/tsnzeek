@@ -27,6 +27,7 @@ To be implemented to configure the existing intrusion detection function.
 TSNZeek requires installing the core components (i) Zeek (v4.1.1), (ii) spicy (v1.4.0), (iii) spicy-plugin (v1.3.1), and (iv) Zeek broker (commit 8493e17). Besides, for testing and simulating a TSN environment, you can also install (v) mininet and (vi) scapy. To install the dependencies of the core components, you can run (in a Debian-based system):
 ```sh
 sudo apt-get install cmake libpcap-dev libssl-dev swig
+pip install numpy BitVector
 ```
 Besides, the broker (iv) requires Python 3.9 (instead of a later version). You can compile it from the source code following [this guideline](https://linuxize.com/post/how-to-install-python-3-9-on-debian-10/). Note that this compilation requires to enable linking by setting the flag `--enable-shared` on the configuration script. Then, you can whether set your default Python version to 3.9 or use the Python 3.9 binary explicitly during the installationg of the broker (iv).
 
