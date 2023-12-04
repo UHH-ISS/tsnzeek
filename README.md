@@ -144,26 +144,35 @@ For further configuration and examples of Mininet, please refer to [its original
 
 ## (Test) Configuration
 
-1. Testing the grammer files via `spicy` using the following command:
+1. **Testing the grammer** files via `spicy` using the following command:
 ```sh
 echo '\x0f\n\x02\x08\x00\x00\x00\x00\x00\x00\x00\x00\x10\x05\x11\x03\x00\x00\x00' | HILTI_DEBUG=spicy spicy-driver -d $TSNZEEK_PATH/spicy/spicy-analyzer/SRP.spicy
 ```
 This should not give any errors.
 
-2. Compiling the new TSN grammer using spicy(-plugin) using the following command:
+2. **Compiling the new TSN grammer** using spicy(-plugin) using the following command:
 ```sh
 cd $TSNZEEK_PATH/spicy/spicy-analyzer
 spicyz Zeek_TSN.spicy FRER.spicy SRP.spicy TSN.evt -o TSN.hlto
 ```
 
-3. Attaching TSNZeek instance (equipped with the generated grammer) to one of your network interfaces using the following command:
+3. **Initiating data plane** by attaching TSNZeek instance (equipped with the generated grammer) to one of your network interfaces using the following command:
 ```sh
 esudo zeek -C $TSNZEEK_PATH/spicy/spicy-analyzer/TSN.hlto $TSNZEEK_PATH/spicy/spicy-analyzer/TSN.zeek $TSNZEEK_PATH/spicy/scripts -i <your-eth-interface> LogAscii::use_json=T Spicy::enable_print=T
 ```
+TSNZeek is now able to monitor inbound traffic on the respective interface.
 
-4. Sending packets to the interface that TSNZeek is attached via `scapy`:
+4. **Testing data plane** by sending packets to the interface that TSNZeek is attached via `scapy`:
 ```sh
 esudo python3 $TSNZEEK_PATH/scapy/CB.py
 >> frer_packet = Ether(src="00:00:00:00:00:01", dst="00:00:00:00:00:02") / Dot1Q(vlan=150) / CB(sequence_nr=1)
 >> sendp(frer_packet, iface="<your-eth-interface>")
 ```
+After this, you should be able to see a log file named `cb.log` that contains the content of the processed p802.1CB frames. 
+
+5. **Initiating control plane** via the following command:
+```sh
+esudo python3 $TSNZEEK_PATH/zeek/attack-detection.py
+```
+This connects the IDS to the broker by subscribing to FRER and SRP packets so that data plane can forward the processed frames to the IDS module. 
+
