@@ -1,4 +1,4 @@
-# TSNZeek: An Open-source Intrusion Detection System for IEEE 802.1 Time-sensitive Networking
+# Configurable Security Monitoring for IEEE 802.1 Time-sensitive Networking
 
 This repository includes files, instructions, and examples to recognize attacks against IEEE 802.1Qcc and IEEE 802.1CB. Samples and further instructions for testing can be found under individual subfolders. 
 
@@ -153,7 +153,7 @@ This should not give any errors.
 2. **Compiling the new TSN grammer** using spicy(-plugin) using the following command:
 ```sh
 cd $TSNZEEK_PATH/spicy/spicy-analyzer
-spicyz Zeek_TSN.spicy FRER.spicy SRP.spicy TSN.evt -o TSN.hlto
+spicyz Zeek_TSN.spicy FRER.spicy SRP.spicy PTP.spicy TSN.evt -o TSN.hlto
 ```
 
 3. **Initiating data plane** by attaching TSNZeek instance (equipped with the generated grammer) to one of your network interfaces using the following command:
@@ -163,16 +163,25 @@ esudo zeek -C $TSNZEEK_PATH/spicy/spicy-analyzer/TSN.hlto $TSNZEEK_PATH/spicy/sp
 TSNZeek is now able to monitor inbound traffic on the respective interface.
 
 4. **Testing data plane** by sending packets to the interface that TSNZeek is attached via `scapy`:
+
+For gPTP packets run the gptp_packet_sender.py script in $TSNZEEK_PATH/scapy, which shoots packets from the ptpv2_vlan.pcap file
+```sh
+cd $TSNZEEK_PATH/scapy
+sudo python3 gptp_packet_sender.py
+```
+After this, you should be able to see a log file named `ptp.log` that contains the content of the processed IEEE Std 802.1AS (g)PTP frames.
+
+For FRER frames:
 ```sh
 esudo python3 $TSNZEEK_PATH/scapy/CB.py
 >> frer_packet = Ether(src="00:00:00:00:00:01", dst="00:00:00:00:00:02") / Dot1Q(vlan=150) / CB(sequence_nr=1)
 >> sendp(frer_packet, iface="<your-eth-interface>")
 ```
-After this, you should be able to see a log file named `cb.log` that contains the content of the processed p802.1CB frames. 
+After this, you should be able to see a log file named `cb.log` that contains the content of the processed p802.1CB frames.
+
 
 5. **Initiating control plane** via the following command:
 ```sh
-esudo python3 $TSNZEEK_PATH/zeek/attack-detection.py
+esudo python3 $TSNZEEK_PATH/zeek/main.py
 ```
 This connects the IDS to the broker by subscribing to FRER and SRP packets so that data plane can forward the processed frames to the IDS module. 
-
