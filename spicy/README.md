@@ -4,7 +4,7 @@ Spicy is used in this project to parse SRP and FRER frames and make the packet d
 
 # File functionality
 
-`FRER.spicy` and `SRP.spicy` hold the grammar for FRER frames and SRP frames, respectively. The public types are the entry points to the grammar.
+`FRER.spicy`, `SRP.spicy`, and `PTP.spicy` hold the grammar for FRER, SRP, and PTP frames, respectively. The public types are the entry points to the grammar.
 
 `Zeek_TSN.spicy` prepares the type conversion from Spicy data types to Zeek data types. It might also include other functionality addressing information exchange between Spicy and Zeek.
 
@@ -51,6 +51,6 @@ Spicy can be used on its own. However, for Zeek to use Spicy, compiled grammar i
 
 ```sh
 source $HOME/env/bin/activate
-spicyz Zeek_TSN.spicy FRER.spicy SRP.spicy TSN.evt -o TSN.hlto
+spicyz Zeek_TSN.spicy FRER.spicy SRP.spicy PTP.spicy TSN.evt -o TSN.hlto
 ```
 This creates `TSN.hlto` which can be used by Zeek.

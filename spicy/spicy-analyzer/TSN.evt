@@ -8,6 +8,13 @@
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
 # Released under GNU Public License (GPL)
 # email robin.schenderlein@studium.uni-hamburg.de
+#
+#
+# This file was updated: IEEE Std 1588 and IEEE Std 802.1AS (g)PTP support for Spicy by
+#
+# (C) 2024 Ahmed Abdulfattah, Berlin, Germany
+# Released under GNU Public License (GPL)
+# email ahmed.abdulfattah@posteo.de
 # -----------------------------------------------------------
 
 packet analyzer spicy::FRER:
@@ -16,6 +23,10 @@ packet analyzer spicy::FRER:
 packet analyzer spicy::SRP:
 	parse with SRP::SRPFrame;
 
+packet analyzer spicy::PTP:
+	parse with PTP::PTPFrame;
+
+import PTP;
 import SRP;
 import FRER;
 import Zeek_TSN;
@@ -26,3 +37,14 @@ on SRP::TalkerEnhanced_FirstValue    -> event TSN::talkerEnhanced_FirstValueMsg(
 on SRP::ListenerEnhanced_FirstValue  -> event TSN::listenerEnhanced_FirstValueMsg($packet, Zeek_TSN::makeListenerEnhanced_FirstValue(self));
 
 on FRER::CBFrame                     -> event TSN::cb_message($packet, Zeek_TSN::makeCBFrame(self), zeek::network_time());
+
+on PTP::AnnounceMessage              -> event TSN::ptp_announceMsg($packet, Zeek_TSN::makePTPAnnounceMessage(self));
+on PTP::SyncMessage                  -> event TSN::ptp_syncMsg($packet, Zeek_TSN::makePTPSyncMessage(self));
+on PTP::DelayReqMessage              -> event TSN::ptp_delayReqMsg($packet, Zeek_TSN::makePTPDelayReqMessage(self));
+on PTP::FollowUpMessage              -> event TSN::ptp_followUpMsg($packet, Zeek_TSN::makePTPFollowUpMessage(self));
+on PTP::DelayRespMessage             -> event TSN::ptp_delayRespMsg($packet, Zeek_TSN::makePTPDelayRespMessage(self));
+on PTP::PdelayReqMessage             -> event TSN::ptp_pdelayReqMsg($packet, Zeek_TSN::makePTPPdelayReqMessage(self));
+on PTP::PdelayRespMessage            -> event TSN::ptp_pdelayRespMsg($packet, Zeek_TSN::makePTPPdelayRespMessage(self));
+on PTP::PdelayRespFollowUpMessage    -> event TSN::ptp_pdelayRespFollowUpMsg($packet, Zeek_TSN::makePTPPdelayRespFollowUpMessage(self));
+on PTP::SignalingMessage             -> event TSN::ptp_signalingMsg($packet, Zeek_TSN::makePTPSignalingMessage(self));
+on PTP::ManagementMessage            -> event TSN::ptp_managementMsg($packet, Zeek_TSN::makeManagementMessage(self));

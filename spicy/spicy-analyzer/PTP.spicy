@@ -1,0 +1,283 @@
+# -----------------------------------------------------------
+#
+# ptp.spicy ---IEEE Std 1588 and IEEE Std 802.1AS (g)PTP support for Spicy
+#
+# This file adds the grammar for (g)PTP layer.
+#
+# (C) 2024 Ahmed Abdulfattah, Berlin, Germany
+# Released under GNU Public License (GPL)
+# email ahmed.abdulfattah@posteo.de
+# -----------------------------------------------------------
+
+
+module PTP;
+
+import spicy;
+
+# PTP Frame - Dependend on the messageType value, the message type is determined
+# Every MessageType contains a messageHeader and messageField (e.g. announceField)
+
+public type PTPFrame = unit {
+    messageType_transportSpecific: uint8 &convert=MessageType($$ & 0x0F);
+    switch (self.messageType_transportSpecific) {
+		MessageType::Sync                       -> syncMessage:               SyncMessage;
+		MessageType::Delay_Req                  -> delayReqMessage:           DelayReqMessage;
+        MessageType::Pdelay_Req                 -> pdelayReqMessage:          PdelayReqMessage;
+		MessageType::Pdelay_Resp                -> pdelayRespMessage:         PdelayRespMessage;
+		MessageType::Follow_Up                  -> followUpMessage:           FollowUpMessage;
+		MessageType::Delay_Resp                 -> delayRespMessage:          DelayRespMessage;
+		MessageType::Pdelay_Resp_Follow_Up      -> pdelayRespFollowUpMessage: PdelayRespFollowUpMessage;
+		MessageType::Announce                   -> announceMessage:           AnnounceMessage;
+		MessageType::Signaling                  -> signalingMessage:          SignalingMessage;
+		MessageType::Management                 -> managementMessage:         ManagementMessage;
+		* -> void;
+    };
+	on %init { print "PTP frame recieved"; }
+    on %error { print "Error PTP frame"; print self; }
+    on %done {print self; print "Done";}
+
+};
+
+
+type AnnounceMessage = unit {
+    messageHeader: MessageHeader;
+    announceField: AnnounceField;
+    on %error { print "Error AnnounceMessage"; }
+};
+
+type AnnounceField = unit {
+    originTimestamp: Timestamp;
+    currentUtcOffset: int16;
+    reserved: int8;
+    grandmasterPriority1: uint8;
+    grandmasterClockQuality: ClockQuality;
+    grandmasterPriority2: uint8;
+    grandmasterIdentity: uint8[8];
+    stepsRemoved: uint16;
+    timeSource: uint8;
+    on %error { print "Error AnnounceField"; }
+};
+
+type SyncMessage = unit {
+    messageHeader: MessageHeader;
+    syncField: SyncField;
+    on %error { print "Error SyncMessage"; }
+};
+
+type SyncField = unit {
+    originTimestamp: Timestamp;
+    on %error { print "Error SyncField"; }
+};
+
+type DelayReqMessage = unit {
+    messageHeader: MessageHeader;
+    delayReqField: DelayReqField;
+    on %error { print "Error DelayReqMessage"; }
+};
+
+type DelayReqField = unit {
+    originTimestamp: Timestamp;
+    on %error { print "Error DelayReqField"; }
+};
+
+
+type FollowUpMessage = unit {
+    messageHeader: MessageHeader;
+    followUpField: FollowUpField;
+    on %error { print "Error FollowUpMessage"; }
+};
+
+type FollowUpField = unit {
+    preciseOriginTimestamp: Timestamp;
+    on %error { print "Error FollowUpField"; }
+};
+
+type DelayRespMessage = unit {
+    messageHeader: MessageHeader;
+    delayRespField: DelayRespField;
+    on %error { print "Error DelayRespMessage"; }
+};
+
+type DelayRespField = unit {
+    receiveTimestamp: Timestamp;
+    requestingPortIdentity: PortIdentity;
+    on %error { print "Error DelayRespField"; }
+};
+
+type PdelayReqMessage = unit {
+    messageHeader: MessageHeader;
+    pdelayReqField: PdelayReqField;
+    on %error { print "Error PdelayReqMessage"; }
+};
+
+type PdelayReqField = unit {
+    originTimestamp: Timestamp;
+    reserved: int8[10];
+    on %error { print "Error PdelayReqField"; }
+};
+
+
+type PdelayRespMessage = unit {
+    messageHeader: MessageHeader;
+    pdelayRespField: PdelayRespField;
+    on %error { print "Error PdelayRespMessage"; }
+};
+
+type PdelayRespField = unit {
+    requestReceiptTimestamp: Timestamp;
+    requestingPortIdentity: PortIdentity;
+    on %error { print "Error PdelayRespField"; }
+};
+
+type PdelayRespFollowUpMessage = unit {
+    messageHeader: MessageHeader;
+    pdelayRespFollowUpField: PdelayRespFollowUpField;
+    on %error { print "Error PdelayRespFollowUpMessage"; }
+};
+
+type PdelayRespFollowUpField = unit {
+    responseOriginTimestamp: Timestamp;
+    requestingPortIdentity: PortIdentity;
+    on %error { print "Error PdelayRespFollowUpField"; }
+};
+
+type SignalingMessage = unit {
+    messageHeader: MessageHeader;
+    signalingField: SignalingField;
+    on %error { print "Error SignalingMessage"; }
+};
+
+type SignalingField = unit {
+    targetPortIdentity: PortIdentity;
+    tlv: TLV;
+    on %error { print "Error SignalingField"; }
+};
+
+type ManagementMessage = unit {
+    messageHeader: MessageHeader;
+    managementField: ManagementField;
+    on %error { print "Error ManagementMessage"; }
+};
+
+type ManagementField = unit {
+    targetPortIdentity: PortIdentity;
+    startingBoundaryHops: uint8;
+    boundaryHops: uint8;
+    actionField: uint8;
+    reserverd: uint8;
+    managementTLV: ManagementTLV;
+    on %error { print "Error ManagementField"; }
+};
+
+type MessageHeader = unit {
+	version: Version;
+	messageLength: uint16;
+	domainNumber: uint8;
+	minorSdoId: uint8;
+	flags : Flags;
+	correctionField: int64;
+	messageTypeSpecific: uint32;
+    sourcePortIdentity: PortIdentity;
+    sequenceId: uint16;
+    controlField: uint8;
+    logMessageInterval: int8;
+    on %error { print "Error MessageHeader"; }
+};
+
+
+type MessageType_TransportSpecific = unit {
+    sequence: bitfield(8) {
+            messageType: 0..3;
+            transportSpecific: 4..7;
+    } &bit-order = spicy::BitOrder::LSB0;
+    on %error { print "Error MessageType_TransportSpecific"; }
+};
+
+
+type MessageType = enum {
+    Sync = 0x0,
+    Delay_Req = 0x1,
+    Pdelay_Req = 0x2,
+    Pdelay_Resp = 0x3,
+    Reserved_0x4 = 0x4,
+    Reserved_0x5 = 0x5,
+    Reserved_0x6 = 0x6,
+    Reserved_0x7 = 0x7,
+    Follow_Up = 0x8,
+    Delay_Resp = 0x9,
+    Pdelay_Resp_Follow_Up = 0xA,
+	Announce = 0xB,
+	Signaling = 0xC,
+    Management = 0xD,
+    Reserved_0xE = 0xE,
+    Reserved_0xF = 0xF
+};
+
+
+
+type Version = unit {
+    sequence: bitfield(8) {
+            versionPTP: 0..3;
+            minorVersionPTP: 4..7;
+    } &bit-order = spicy::BitOrder::LSB0;
+    on %error { print "Error Version"; }
+};
+
+type Flags = unit {
+    sequence: bitfield(16) {
+        alternateMasterFlag: 0;
+        twoStepFlag: 1;
+        unicastFlag: 2;
+        reserved_3: 3;
+        reserved_4: 4;
+        ptp_profile_specific_1: 5;
+        ptp_profile_specific_2: 6;
+        reserved_7: 7;
+        leap61: 8;
+        leap59: 9;
+        currentUtcOffsetValid: 10;
+        ptpTimescale: 11;
+        timeTraceable: 12;
+        frequencyTraceable: 13;
+        synchronizationUncertain: 14;
+        reserved_15: 15;
+    } &bit-order = spicy::BitOrder::LSB0;
+    on %error { print "Error Flags"; }
+};
+
+
+type PortIdentity = unit {
+    clockIdentity: uint8[8];
+    portNumber: uint16;
+    on %error { print "Error PortIdentity"; }
+};
+
+
+type Timestamp = unit {
+	secondsMSB: uint16;
+	secondsLSB: uint32;
+	nanoSeconds: uint32;
+    on %error { print "Error Timestamp"; }
+};
+
+type ClockQuality = unit {
+	clockClass: uint8;
+    clockAccuracy: uint8;
+	offsetScaledLogVariance: uint16;
+    on %error { print "Error ClockQuality"; }
+};
+
+type TLV = unit {
+	tlvType: uint16;
+	lengthField: uint16;
+	valueField: uint8[self.lengthField];
+    on %error { print "Error TLV"; }
+};
+
+type ManagementTLV = unit {
+    tlvType: uint16;
+    lengthField: uint16;
+    managementId: uint16;
+    dataField: uint8[self.lengthField];
+    on %error { print "Error ManagementTLV"; }
+};

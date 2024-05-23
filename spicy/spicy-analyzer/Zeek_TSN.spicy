@@ -7,6 +7,14 @@
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
 # Released under GNU Public License (GPL)
 # email robin.schenderlein@studium.uni-hamburg.de
+#
+# This file was updated: IEEE Std 1588 and IEEE Std 802.1AS (g)PTP support for Spicy
+#
+# This file adds the grammar for (g)PTP layer.
+#
+# (C) 2024 Ahmed Abdulfattah, Berlin, Germany
+# Released under GNU Public License (GPL)
+# email ahmed.abdulfattah@posteo.de
 # -----------------------------------------------------------
 
 module Zeek_TSN;
@@ -14,6 +22,7 @@ module Zeek_TSN;
 import zeek;
 import SRP;
 import FRER;
+import PTP;
 
 #on SRP::SRPFrame::%done {
 #    zeek::confirm_protocol();
@@ -179,6 +188,477 @@ public function makeCBFrame(obj: FRER::CBFrame): Zeek_TSN::CBFrame
 		obj.sequenceNumber
 	);
 }
+
+type TLV = tuple<
+	tlvType: uint16,
+	lengthField: uint16,
+	valueField: vector<uint8>
+>;
+
+type ManagementTLV = tuple<
+    tlvType: uint16,
+    lengthField: uint16,
+    managementId: uint16,
+    dataField: vector<uint8>
+>;
+
+
+type ClockQuality = tuple<
+	clockClass: uint8,
+    clockAccuracy: uint8,
+	offsetScaledLogVariance: uint16
+>;
+
+type Timestamp = tuple<
+	secondsMSB: uint16,
+	secondsLSB: uint32,
+	nanoSeconds: uint32
+>;
+
+type PortIdentity = tuple<
+    clockIdentity: vector<uint8>,
+    portNumber: uint16
+>;
+
+type AnnounceField = tuple<
+    originTimestamp: Timestamp,
+    currentUtcOffset: int16,
+    reserved: int8,
+    grandmasterPriority1: uint8,
+    grandmasterClockQuality: ClockQuality,
+    grandmasterPriority2: uint8,
+    grandmasterIdentity: vector<uint8>,
+    stepsRemoved: uint16,
+    timeSource: uint8
+>;
+
+type AnnounceMessage = tuple<
+    messageHeader: MessageHeader,
+    announceField: AnnounceField
+>;
+
+
+type SyncField = tuple<
+    originTimestamp: Timestamp
+>;
+
+type SyncMessage = tuple<
+    messageHeader: MessageHeader,
+    syncField: SyncField
+>;
+
+
+type DelayReqField = tuple<
+    originTimestamp: Timestamp
+>;
+
+type DelayReqMessage = tuple<
+    messageHeader: MessageHeader,
+    delayReqField: DelayReqField
+>;
+
+type FollowUpField = tuple<
+    preciseOriginTimestamp: Timestamp
+>;
+
+type FollowUpMessage = tuple<
+    messageHeader: MessageHeader,
+    followUpField: FollowUpField
+>;
+
+type DelayRespField = tuple<
+    receiveTimestamp: Timestamp,
+    requestingPortIdentity: PortIdentity
+>;
+
+type DelayRespMessage = tuple<
+    messageHeader: MessageHeader,
+    delayRespField: DelayRespField
+>;
+
+type PdelayReqField = tuple<
+    originTimestamp: Timestamp,
+    reserved: vector<int8>
+>;
+
+type PdelayReqMessage = tuple<
+    messageHeader: MessageHeader,
+    pdelayReqField: PdelayReqField
+>;
+
+type PdelayRespField = tuple<
+    requestReceiptTimestamp: Timestamp,
+    requestingPortIdentity: PortIdentity
+>;
+
+type PdelayRespMessage = tuple<
+    messageHeader: MessageHeader,
+    pdelayRespField: PdelayRespField
+>;
+
+
+type PdelayRespFollowUpField = tuple<
+    responseOriginTimestamp: Timestamp,
+    requestingPortIdentity: PortIdentity
+>;
+
+
+type PdelayRespFollowUpMessage = tuple<
+    messageHeader: MessageHeader,
+    pdelayRespFollowUpField: PdelayRespFollowUpField
+>;
+
+type SignalingField = tuple<
+    targetPortIdentity: PortIdentity,
+	tlv: TLV
+>;
+
+type SignalingMessage = tuple<
+    messageHeader: MessageHeader,
+    signalingField: SignalingField
+>;
+
+type ManagementField = tuple<
+    targetPortIdentity: PortIdentity,
+    startingBoundaryHops: uint8,
+    boundaryHops: uint8,
+    actionField: uint8,
+    reserverd: uint8,
+    managementTLV: ManagementTLV
+>;
+
+type ManagementMessage = tuple<
+    messageHeader: MessageHeader,
+    managementField: ManagementField
+>;
+
+type MessageType_TransportSpecific = tuple<
+    messageType: uint8,
+    transportSpecific: uint8
+>;
+
+type Flags = tuple<
+	alternateMasterFlag: uint16,
+    twoStepFlag: uint16,
+    unicastFlag: uint16,
+    reserved_3: uint16,
+    reserved_4: uint16,
+    ptp_profile_specific_1: uint16,
+    ptp_profile_specific_2: uint16,
+    reserved_7: uint16,
+    leap61: uint16,
+    leap59: uint16,
+    currentUtcOffsetValid: uint16,
+    ptpTimescale: uint16,
+    timeTraceable: uint16,
+    frequencyTraceable: uint16,
+    synchronizationUncertain: uint16,
+    reserved_15: uint16
+>;
+
+type Version = tuple<
+    versionPTP: uint8,
+    minorVersionPTP: uint8
+>;
+
+type MessageHeader = tuple<
+	version: Version,
+	messageLength: uint16,
+	domainNumber: uint8,
+	minorSdoId: uint8,
+	flags: Flags,
+	correctionField: int64,
+	messageTypeSpecific: uint32,
+	sourcePortIdentity: PortIdentity,
+    sequenceId: uint16,
+    controlField: uint8,
+    logMessageInterval: int8
+>;
+
+function makeManagementTLV(obj: PTP::ManagementTLV): Zeek_TSN::ManagementTLV
+{
+	return (
+		obj.tlvType,
+		obj.lengthField,
+		obj.managementId,
+		obj.dataField
+	);
+}
+
+function makeTLV(obj: PTP::TLV): Zeek_TSN::TLV
+{
+	return (
+		obj.tlvType,
+		obj.lengthField,
+		obj.valueField
+	);
+}
+
+function makePortIdentity(obj: PTP::PortIdentity): Zeek_TSN::PortIdentity
+{
+	return (
+		obj.clockIdentity,
+		obj.portNumber
+	);
+}
+
+function makeFlags(obj: PTP::Flags): Zeek_TSN::Flags
+{
+	return (
+		obj.sequence.alternateMasterFlag,
+	    obj.sequence.twoStepFlag,
+	    obj.sequence.unicastFlag,
+	    obj.sequence.reserved_3,
+	    obj.sequence.reserved_4,
+	    obj.sequence.ptp_profile_specific_1,
+	    obj.sequence.ptp_profile_specific_2,
+	    obj.sequence.reserved_7,
+	    obj.sequence.leap61,
+	    obj.sequence.leap59,
+	    obj.sequence.currentUtcOffsetValid,
+	    obj.sequence.ptpTimescale,
+	    obj.sequence.timeTraceable,
+	    obj.sequence.frequencyTraceable,
+	    obj.sequence.synchronizationUncertain,
+	    obj.sequence.reserved_15
+	);
+}
+
+function makeVersion(obj: PTP::Version): Zeek_TSN::Version
+{
+	return (
+		obj.sequence.versionPTP,
+		obj.sequence.minorVersionPTP
+	);
+}
+
+function makeMessageType_TransportSpecific(obj: PTP::MessageType_TransportSpecific): Zeek_TSN::MessageType_TransportSpecific
+{
+	return (
+		obj.sequence.messageType,
+		obj.sequence.transportSpecific
+	);
+}
+
+function makeMessageHeader(obj: PTP::MessageHeader): Zeek_TSN::MessageHeader
+{
+	return (
+		makeVersion(obj.version),
+		obj.messageLength,
+		obj.domainNumber,
+		obj.minorSdoId,
+		makeFlags(obj.flags),
+		obj.correctionField,
+		obj.messageTypeSpecific,
+		makePortIdentity(obj.sourcePortIdentity),
+    	obj.sequenceId,
+    	obj.controlField,
+		obj.logMessageInterval
+	);
+}
+
+
+function makeClockQuality(obj: PTP::ClockQuality): Zeek_TSN::ClockQuality
+{
+	return (
+		obj.clockClass,
+		obj.clockAccuracy,
+		obj.offsetScaledLogVariance
+	);
+}
+
+function makeTimestamp(obj: PTP::Timestamp): Zeek_TSN::Timestamp
+{
+	return (
+		obj.secondsMSB,
+		obj.secondsLSB,
+		obj.nanoSeconds
+	);
+}
+
+
+function makeManagementField(obj: PTP::ManagementField): Zeek_TSN::ManagementField
+{
+	return (
+		makePortIdentity(obj.targetPortIdentity),
+		obj.startingBoundaryHops,
+		obj.boundaryHops,
+		obj.actionField,
+    	obj.reserverd,
+    	makeManagementTLV(obj.managementTLV)
+	);
+}
+
+
+function makeSignalingField(obj: PTP::SignalingField): Zeek_TSN::SignalingField
+{
+	return (
+		makePortIdentity(obj.targetPortIdentity),
+		makeTLV(obj.tlv)
+	);
+}
+
+
+function makePdelayRespFollowUpField(obj: PTP::PdelayRespFollowUpField): Zeek_TSN::PdelayRespFollowUpField
+{
+	return (
+		makeTimestamp(obj.responseOriginTimestamp),
+		makePortIdentity(obj.requestingPortIdentity)
+	);
+}
+
+
+function makePdelayRespField(obj: PTP::PdelayRespField): Zeek_TSN::PdelayRespField
+{
+	return (
+		makeTimestamp(obj.requestReceiptTimestamp),
+		makePortIdentity(obj.requestingPortIdentity)
+	);
+}
+
+function makePdelayReqField(obj: PTP::PdelayReqField): Zeek_TSN::PdelayReqField
+{
+	return (
+		makeTimestamp(obj.originTimestamp),
+		obj.reserved
+	);
+}
+
+
+function makeDelayRespField(obj: PTP::DelayRespField): Zeek_TSN::DelayRespField
+{
+	return (
+		makeTimestamp(obj.receiveTimestamp),
+		makePortIdentity(obj.requestingPortIdentity)
+	);
+}
+
+
+function makeFollowUpField(obj: PTP::FollowUpField): Zeek_TSN::FollowUpField
+{
+	return (
+		makeTimestamp(obj.preciseOriginTimestamp),
+	);
+}
+
+function makeDelayReqField(obj: PTP::DelayReqField): Zeek_TSN::DelayReqField
+{
+	return (
+		makeTimestamp(obj.originTimestamp),
+	);
+}
+
+function makeSyncField(obj: PTP::SyncField): Zeek_TSN::SyncField
+{
+	return (
+		makeTimestamp(obj.originTimestamp),
+	);
+}
+
+
+function makeAnnounceField(obj: PTP::AnnounceField): Zeek_TSN::AnnounceField
+{
+	return (
+		makeTimestamp(obj.originTimestamp),
+		obj.currentUtcOffset,
+		obj.reserved,
+		obj.grandmasterPriority1,
+		makeClockQuality(obj.grandmasterClockQuality),
+		obj.grandmasterPriority2,
+		obj.grandmasterIdentity,
+		obj.stepsRemoved,
+		obj.timeSource
+	);
+}
+
+
+
+public function makeManagementMessage(obj: PTP::ManagementMessage): Zeek_TSN::ManagementMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makeManagementField(obj.managementField)
+	);
+}
+
+
+public function makePTPSignalingMessage(obj: PTP::SignalingMessage): Zeek_TSN::SignalingMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makeSignalingField(obj.signalingField)
+	);
+}
+
+public function makePTPPdelayRespFollowUpMessage(obj: PTP::PdelayRespFollowUpMessage): Zeek_TSN::PdelayRespFollowUpMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makePdelayRespFollowUpField(obj.pdelayRespFollowUpField)
+	);
+}
+
+public function makePTPPdelayRespMessage(obj: PTP::PdelayRespMessage): Zeek_TSN::PdelayRespMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makePdelayRespField(obj.pdelayRespField)
+	);
+}
+
+
+public function makePTPPdelayReqMessage(obj: PTP::PdelayReqMessage): Zeek_TSN::PdelayReqMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makePdelayReqField(obj.pdelayReqField)
+	);
+}
+
+public function makePTPDelayRespMessage(obj: PTP::DelayRespMessage): Zeek_TSN::DelayRespMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makeDelayRespField(obj.delayRespField)
+	);
+}
+
+
+public function makePTPFollowUpMessage(obj: PTP::FollowUpMessage): Zeek_TSN::FollowUpMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makeFollowUpField(obj.followUpField)
+	);
+}
+
+public function makePTPDelayReqMessage(obj: PTP::DelayReqMessage): Zeek_TSN::DelayReqMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makeDelayReqField(obj.delayReqField)
+	);
+}
+
+public function makePTPSyncMessage(obj: PTP::SyncMessage): Zeek_TSN::SyncMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makeSyncField(obj.syncField)
+	);
+}
+
+
+
+public function makePTPAnnounceMessage(obj: PTP::AnnounceMessage): Zeek_TSN::AnnounceMessage
+{
+	return (
+		makeMessageHeader(obj.messageHeader),
+		makeAnnounceField(obj.announceField)
+	);
+}
+
+
 
 public function makeListenerEnhanced_FirstValue(obj: SRP::ListenerEnhanced_FirstValue): Zeek_TSN::ListenerEnhanced_FirstValue
 {
