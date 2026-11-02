@@ -67,6 +67,8 @@ Analyse a pcap (logs are written to the current directory, `LogAscii::use_json=T
 ZEEK_SPICY_MODULE_PATH=build/spicy /opt/zeek/bin/zeek -C -r x.pcap spicy/scripts TSN::enable_broker=F LogAscii::use_json=T
 ```
 
+`TSN::enable_broker=F` (`F` is false) is needed here: by default Zeek listens for the IDS over Broker, and a listener keeps Zeek running after the pcap ends. See [`spicy/`](spicy/README.md#options).
+
 Monitor an interface with the IDS (two terminals; Zeek waits for the IDS on `127.0.0.1:9999`):
 
 ```sh
