@@ -29,13 +29,21 @@ PTP tolerates Ethernet padding and suffix TLVs; over UDP any octet beyond `messa
 
 ## Options
 
-Set on the command line, e.g. `TSN::enable_broker=F`:
+Set on the command line after the script path, as `TSN::<option>=<value>` (booleans are `T` and `F`: true and false):
 
 | Option | Default | Effect |
 | --- | --- | --- |
 | `TSN::enable_broker` | `T` | listen for the IDS on `127.0.0.1:9999` and send it the messages; disable for plain pcap runs |
 | `TSN::wait_for_peer` | `F` | pause until the IDS announces itself (`ids_ready`) and end the run when it is done (`ids_done`); for offline runs with the IDS |
 | `TSN::log_flush_interval` | `0 secs` | flush the logs this often, so that `tail -f` shows them as they are written |
+
+### Why `TSN::enable_broker=F` for a plain pcap run
+
+With the default `T`, Zeek listens for the IDS on `127.0.0.1:9999`. An open Broker listener keeps Zeek alive, so
+`zeek -r x.pcap spicy/scripts` does **not exit** after the last packet; it waits for a peer. Without the IDS, always run a
+pcap with `TSN::enable_broker=F`: no listener, no messages to the IDS, only the logs, and Zeek ends when the pcap does
+(`tests/run.sh` does this). To analyse a pcap together with the IDS, leave it on and add `TSN::wait_for_peer=T` (see
+[`../ids/`](../ids/README.md) and `--offline`), which also ends the run.
 
 ## Known gaps
 
