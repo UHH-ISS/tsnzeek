@@ -32,6 +32,7 @@ logs everything it parses, and passes the messages to an intrusion detection mod
 | --- | --- |
 | [`spicy/`](spicy/README.md) | grammars, `TSN.evt`, the Zeek scripts (data plane) |
 | [`ids/`](ids/README.md) | the intrusion detection (control plane) |
+| [`web/`](web/README.md) | Django interface: live logs, alerts, rules, configuration; rules and thresholds can be changed at run time |
 | [`deploy/`](deploy/README.md) | optional systemd services, configuration and log locations |
 | [`tests/`](tests/README.md) | unit and pcap tests; [`tests/live/`](tests/live/README.md) the Mininet network, live tests and demo |
 | [`scapy/`](scapy/README.md) | Scapy layers for FRER and SRP, the original attack script |
@@ -70,6 +71,7 @@ Pick one; all of them are described below or in the linked guide.
 | monitor an interface by hand, in two terminals | `zeek -i IFACE spicy/scripts` and `python3 -m ids` | [Usage](#usage) |
 | monitor in the background, nothing installed | `deploy/headless.sh start -i IFACE` / `stop` | [Headless](#headless-no-terminal-window-no-service) |
 | monitor permanently, started at boot | `sudo deploy/install.sh`, `systemctl start tsnzeek.target` | [`deploy/`](deploy/README.md) |
+| watch and control the detection in a browser (same machine) | `python web/manage.py runserver` | [`web/`](web/README.md) |
 | check that everything works | `./build.sh`, `tests/run.sh`, `tests/run_ids.sh` | [`tests/`](tests/README.md) |
 | see attacks and detections in a demo | `sudo -E python3 tests/live/run_live.py --demo` | [`tests/live/`](tests/live/README.md) |
 

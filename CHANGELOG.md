@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Web interface
+- `web/`: a small Django app (no database, `127.0.0.1` only) with the tabs Overview (connection, messages per second, alerts per rule, tracked FRER streams, SRP reservations and PTP domains, latest alerts), Rules (switch rules on and off), Config (change thresholds) and Logs (live tail of Zeek's logs and the alerts). It reads `state.json` and the logs and writes `control.json`, validated by the code the IDS applies it with. Tests: `python web/manage.py test console`.
+- Rules have stable numbers (1xx FRER, 2xx SRP, 3xx PTP); `control.json` takes a name or a number.
+
 ### Run-time control
 - `ids/catalog.py` lists the rules as data (name, protocol, summary, thresholds); a test keeps it equal to the rules the detectors raise.
 - `--control-dir` / `$TSNZEEK_CONTROL_DIR`: the IDS writes `state.json` (rules, active configuration, counters, messages per second, tracked streams, connection to Zeek) and applies `control.json` (disabled rules, threshold overrides) within half a second, without a restart and without losing what the detectors learned (`Detector.reconfigure`). The service uses `/var/lib/tsnzeek`, `headless.sh` uses `$TSNZEEK_DIR/control`.
