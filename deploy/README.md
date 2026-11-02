@@ -6,9 +6,11 @@ systemd.
 
 | Unit | Runs |
 | --- | --- |
-| `tsnzeek-zeek.service` | Zeek on one interface with the TSN analyzers, as user `tsnzeek` with only `CAP_NET_RAW` and `CAP_NET_ADMIN` |
-| `tsnzeek-ids.service` | `python3 -m ids --service`: waits for Zeek without a time limit, keeps running when Zeek restarts |
+| `tsnzeek-monitor.service` | the monitor: Zeek on one interface with the TSN analyzers, as user `tsnzeek` with only `CAP_NET_RAW` and `CAP_NET_ADMIN` |
+| `tsnzeek-ids.service` | the IDS, `python3 -m ids --service`: waits for the monitor without a time limit, keeps running when it restarts |
 | `tsnzeek.target` | both; start and stop them together |
+
+The two are independent units: `sudo systemctl stop|start|restart tsnzeek-monitor` or `tsnzeek-ids` act on one, `tsnzeek.target` on both. (`tsnzeek-ids` `Wants=` the monitor, so starting the IDS alone starts the monitor too.) An older install with `tsnzeek-zeek.service` is replaced by `install.sh`.
 
 ## Install
 
@@ -26,7 +28,7 @@ selects another Zeek. `sudo deploy/install.sh --uninstall` removes the units aga
 ## Check that it runs
 
 ```sh
-systemctl --no-pager status tsnzeek-zeek tsnzeek-ids      # both "active (running)"
+systemctl --no-pager status tsnzeek-monitor tsnzeek-ids      # both "active (running)"
 journalctl --no-pager -u tsnzeek-ids -n 20                # "Connected to Zeek"
 ls /var/log/tsnzeek                                       # cb.log, ptp.log, srp.log ... as frames arrive
 tail -f /var/log/tsnzeek/alerts.log                       # the alerts
@@ -40,7 +42,7 @@ cannot run, for example in a shell without a proper `TERM`. It has nothing to do
 | Task | Command |
 | --- | --- |
 | stop / start / restart both | `sudo systemctl stop\|start\|restart tsnzeek.target` |
-| change the interface | edit `/etc/tsnzeek/tsnzeek.env`, `sudo systemctl restart tsnzeek-zeek` |
+| change the interface | edit `/etc/tsnzeek/tsnzeek.env`, `sudo systemctl restart tsnzeek-monitor` |
 | change thresholds | edit `/etc/tsnzeek/ids.json`, `sudo systemctl restart tsnzeek-ids` |
 | not at boot any more | `sudo systemctl disable tsnzeek.target` |
 | remove the units | `sudo deploy/install.sh --uninstall` |
@@ -63,13 +65,13 @@ Restart the IDS after a change: `sudo systemctl restart tsnzeek-ids`. The Broker
 | `/var/log/tsnzeek/cb.log`, `ptp.log`, `srp.log`, `tsn_errors.log`, `notice.log`, ... | Zeek's logs as JSON, flushed every second; Zeek rotates them daily (the old ones get the date in their name) |
 | `/var/log/tsnzeek/alerts.log` | the alerts of the IDS, one line each; rotated weekly by logrotate |
 | `journalctl -u tsnzeek-ids -f` | the same alerts, and the messages about the connection to Zeek |
-| `journalctl -u tsnzeek-zeek` | errors of Zeek itself |
+| `journalctl -u tsnzeek-monitor` | errors of Zeek itself |
 
 Outside a service the alert file is `--alert-log FILE` or `$TSNZEEK_ALERT_LOG`; without either, alerts go to the console only.
 
 ## Troubleshooting
 
-- `tsnzeek-zeek` fails at once: `journalctl -u tsnzeek-zeek -n 30`. A wrong interface name in `tsnzeek.env`, or a grammar that was not built (`./build.sh`), are the usual causes.
+- `tsnzeek-monitor` fails at once: `journalctl -u tsnzeek-monitor -n 30`. A wrong interface name in `tsnzeek.env`, or a grammar that was not built (`./build.sh`), are the usual causes.
 - No `*.log` files: there was no TSN traffic yet, or Zeek sees the wrong interface (`ip -br link`). Zeek creates a log when its first row is written.
 - `tsnzeek-ids` says `Lost Zeek, waiting for it to come back`: Zeek restarted or stopped; the IDS reconnects by itself.
 - Nothing in `alerts.log` although you attack: check that the IDS was connected (`Connected to Zeek`) before the traffic, and that the thresholds in `/etc/tsnzeek/ids.json` are not too high.

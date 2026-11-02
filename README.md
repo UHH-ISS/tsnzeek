@@ -60,6 +60,19 @@ git clone https://github.com/UHH-ISS/tsnzeek.git && cd tsnzeek
 ./build.sh                  # compiles build/spicy/tsn.hlto, then runs the unit tests; nothing to do if it is up to date
 ```
 
+## Ways to run it
+
+Pick one; all of them are described below or in the linked guide.
+
+| I want to | Command | Guide |
+| --- | --- | --- |
+| analyse a pcap | `zeek -C -r x.pcap spicy/scripts TSN::enable_broker=F` | [Usage](#usage) |
+| monitor an interface by hand, in two terminals | `zeek -i IFACE spicy/scripts` and `python3 -m ids` | [Usage](#usage) |
+| monitor in the background, nothing installed | `deploy/headless.sh start -i IFACE` / `stop` | [Headless](#headless-no-terminal-window-no-service) |
+| monitor permanently, started at boot | `sudo deploy/install.sh`, `systemctl start tsnzeek.target` | [`deploy/`](deploy/README.md) |
+| check that everything works | `./build.sh`, `tests/run.sh`, `tests/run_ids.sh` | [`tests/`](tests/README.md) |
+| see attacks and detections in a demo | `sudo -E python3 tests/live/run_live.py --demo` | [`tests/live/`](tests/live/README.md) |
+
 ## Usage
 
 Analyse a pcap (logs are written to the current directory, `LogAscii::use_json=T` makes them JSON):
@@ -85,38 +98,47 @@ logs of an earlier run, without Zeek or Broker: `python3 -m ids --replay cb.log 
 
 ## Headless (no terminal window, no service)
 
-Zeek and the IDS called directly and kept running in the background of a server or an SSH session. Nothing is installed.
-(For something that starts at boot, use the [systemd services](deploy/README.md).) `deploy/headless.sh` starts, checks and
-stops both:
+The monitor (Zeek) and the IDS called directly and kept running in the background of a server or an SSH session. Nothing is
+installed. (For something that starts at boot, use the [systemd services](deploy/README.md).) `deploy/headless.sh` starts,
+checks and stops both. Everything it creates lives in one directory, `$TSNZEEK_DIR` (default `~/tsnzeek`, or `-d DIR`):
+
+```
+~/tsnzeek/
+  logs/   cb.log ptp.log srp.log tsn_errors.log notice.log ...   Zeek's logs (JSON)
+          alerts.log                                            the alerts of the IDS
+          ids.out monitor.out                                   console output of the two programs
+  run/    ids.pid monitor.pid                                    how `stop` and `status` find them
+```
 
 1. Build once: `./build.sh`
 2. Find the interface to monitor: `ip -br link`
-3. Start (asks for your `sudo` password: capturing needs root; `sudo setcap cap_net_raw,cap_net_admin=eip /opt/zeek/bin/zeek` once avoids it):
+3. Start (asks for your `sudo` password: capturing needs root; `sudo setcap cap_net_raw,cap_net_admin=eip /opt/zeek/bin/zeek` once avoids it, and then the logs belong to you instead of root):
 
    ```sh
-   deploy/headless.sh start -i eth0 -d ~/tsnzeek-logs [-c my-thresholds.json]
+   deploy/headless.sh start -i eth0 [-d ~/tsnzeek] [-c my-thresholds.json]
    ```
 
-   `-d` is where everything goes (default `~/tsnzeek-logs`), `-c` the IDS thresholds (the keys of `Config` in `ids/config.py`;
-   without it `/etc/tsnzeek/ids.json` if it exists, else the defaults). The IDS starts first and waits for Zeek.
+   `-c` gives the IDS thresholds (the keys of `Config` in `ids/config.py`; without it `/etc/tsnzeek/ids.json` if it
+   exists, else the defaults). The IDS starts first and waits for the monitor.
 4. Check and watch:
 
    ```sh
-   deploy/headless.sh status -d ~/tsnzeek-logs                  # both "running"
-   cat ~/tsnzeek-logs/ids.out                                    # "Connected to Zeek"
-   tail -f ~/tsnzeek-logs/cb.log ~/tsnzeek-logs/ptp.log ~/tsnzeek-logs/srp.log   # one JSON line per message
-   tail -f ~/tsnzeek-logs/alerts.log ~/tsnzeek-logs/notice.log   # the alerts
+   deploy/headless.sh status                                    # both "running"
+   cat ~/tsnzeek/logs/ids.out                                    # "Connected to Zeek"
+   tail -f ~/tsnzeek/logs/{cb,ptp,srp}.log                       # one JSON line per message
+   tail -f ~/tsnzeek/logs/alerts.log ~/tsnzeek/logs/notice.log   # the alerts
    ```
 
 5. Stop both (SIGTERM, so Zeek closes its logs; SIGKILL after 10 s if one hangs):
 
    ```sh
-   deploy/headless.sh stop -d ~/tsnzeek-logs
+   deploy/headless.sh stop
    ```
 
-The script writes `ids.pid` and `zeek.pid` into the log directory; that is how `stop` and `status` find the processes, so give
-them the same `-d`. By hand, the same is `python3 -m ids --service --alert-log FILE` (with `PYTHONPATH=/opt/zeek/lib/zeek/python`)
-and `zeek -C -i IFACE spicy/scripts LogAscii::use_json=T TSN::log_flush_interval=1sec` started in the log directory.
+Give `status` and `stop` the same `-d` (or `$TSNZEEK_DIR`) as `start` if you did not use the default. By hand, the same is
+`python3 -m ids --service --alert-log FILE` (with `PYTHONPATH=/opt/zeek/lib/zeek/python`) and
+`zeek -C -i IFACE spicy/scripts LogAscii::use_json=T TSN::log_flush_interval=1sec` started in the log directory.
+
 `TSN::wait_for_peer` is for pcaps run together with the IDS; a live run does not need it.
 
 ## Testing
