@@ -8,7 +8,9 @@ PYTHONPATH=/opt/zeek/lib/zeek/python python3 -m ids [--config thresholds.json]  
 python3 -m ids --replay cb.log srp.log ptp.log                                    # Zeek's JSON logs, no Zeek or Broker
 ```
 
-`--drain SECONDS` advances the clock at the end so that timeouts fire, `--offline` is for `zeek -r x.pcap ...
+`--service` waits for Zeek without a time limit and keeps running when Zeek restarts (used by the systemd unit, see [`deploy/`](../deploy/README.md));
+`--alert-log FILE` (or `$TSNZEEK_ALERT_LOG`) also appends the alerts to a file. Without `--config` the thresholds come from
+`$TSNZEEK_CONFIG`, else `/etc/tsnzeek/ids.json` if it exists, else the defaults. `--drain SECONDS` advances the clock at the end so that timeouts fire, `--offline` is for `zeek -r x.pcap ...
 TSN::wait_for_peer=T` runs (the tests use it). Thresholds come from a JSON file whose keys are the fields of `Config` in
 `config.py`.
 

@@ -1,0 +1,30 @@
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+# The Python IDS. It waits for Zeek without a time limit and keeps running when Zeek restarts.
+# @TSNZEEK_HOME@ and @ZEEK_PREFIX@ are filled in by deploy/install.sh.
+[Unit]
+Description=TSNZeek: intrusion detection for the messages of Zeek
+Documentation=file:@TSNZEEK_HOME@/ids/README.md
+After=tsnzeek-zeek.service
+Wants=tsnzeek-zeek.service
+PartOf=tsnzeek.target
+
+[Service]
+User=tsnzeek
+Group=tsnzeek
+EnvironmentFile=/etc/tsnzeek/tsnzeek.env
+Environment=PYTHONPATH=@ZEEK_PREFIX@/lib/zeek/python
+Environment=PYTHONUNBUFFERED=1
+Environment=TSNZEEK_ALERT_LOG=/var/log/tsnzeek/alerts.log
+WorkingDirectory=@TSNZEEK_HOME@
+# Thresholds: /etc/tsnzeek/ids.json when it exists, else the defaults of ids/config.py.
+ExecStart=/usr/bin/python3 -m ids --service
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ReadWritePaths=/var/log/tsnzeek
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=tsnzeek.target
