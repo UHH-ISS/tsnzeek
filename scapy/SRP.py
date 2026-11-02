@@ -17,7 +17,7 @@ import logging
 from scapy.config import conf
 from scapy.fields import ShortField, MACField, BitField, ByteField, IntField, IPField, IP6Field, \
     ByteEnumField, FieldLenField, FieldListField, StrLenField, PacketListField
-from scapy.layers.l2 import Ether
+from scapy.layers.l2 import Dot1Q, Ether
 from scapy.main import interact
 from scapy.packet import Packet, bind_layers
 
@@ -49,7 +49,7 @@ class SrpGenericTlv(Packet):
     def dispatch_hook(cls, _pkt=None, *args, **kargs):
         if _pkt and len(_pkt) >= 2:
             t = _pkt[:1][0]
-            cls = _SRP_TLV_CLS.get(t, "DtpGenericTlv")
+            cls = _SRP_TLV_CLS.get(t, SrpGenericTlv)
         return cls
 
     def guess_payload_class(self, p):
@@ -110,7 +110,7 @@ class IEEE802MacAddresses(SrpGenericTlv):
 class IEEE802VlanTag(SrpGenericTlv):
     name = "IEEE802VlanTag"
     fields_desc = [ByteField("TLV_type", 8),
-                   ByteField("TLV_length", 12),
+                   ByteField("TLV_length", 3),
                    ByteField("PriorityCodePoint", 0),
                    ShortField("VlanId", 0)]
 
@@ -272,6 +272,7 @@ class SRP(Packet):
 
 
 bind_layers(Ether, SRP, type=0x22ea)
+bind_layers(Dot1Q, SRP, type=0x22ea)
 
 if __name__ == "__main__":
     interact(mydict=globals(), mybanner="Test add-on TSN")
