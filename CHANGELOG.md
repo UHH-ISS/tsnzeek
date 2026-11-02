@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Service
+- Optional systemd services in `deploy/` (Zeek and the IDS as user `tsnzeek`, `install.sh`, logs in `/var/log/tsnzeek`, daily Zeek log rotation, logrotate for the alert log); TSNZeek still runs without them.
+- IDS: `--service` (waits for Zeek without a time limit and survives Zeek restarts), `--alert-log`, and the config file is looked up in `--config`, `$TSNZEEK_CONFIG`, `/etc/tsnzeek/ids.json`, then the defaults.
+- `TSN::broker_listen_addr` and `TSN::broker_listen_port` replace the fixed `127.0.0.1:9999`.
+
+### Documentation
+- Step-by-step guides: running Zeek and the IDS headless (README), the systemd services with checks, day-to-day commands and troubleshooting (`deploy/README.md`), the automatic tests (`tests/README.md`) and the Mininet demo, with and without a display (`tests/live/README.md`).
+- Explain why a plain pcap run needs `TSN::enable_broker=F` (README and `spicy/README.md`).
+
 ### Version upgrades
 - Target Zeek 9.0.1 LTS from the official package (`/opt/zeek`); Spicy and Broker now ship with Zeek, so the separate Spicy, spicy-plugin and Broker builds and the Python 3.9 pin are dropped.
 - Adapt the grammars to the current Spicy syntax (`* -> : void;` in switches).
@@ -59,7 +68,8 @@
 - Every rule has a name that says what it detects instead of `attack1`...`attack9`: `frer_excess_copies`, `frer_out_of_order`, `frer_dead_stream`, `srp_oversized_request`, `srp_bandwidth_jump`, `srp_request_burst`, `srp_reservation_change`, `srp_unused_reservation` and the PTP rules `ptp_rogue_grandmaster`, `ptp_unannounced_sync`, `ptp_sequence_id` (the original numbers are listed in `ids/README.md`). The names are used in alerts, tests, and the functions of the old attack script (`frer_timing_jitter` is its attack 2, which has no rule).
 - The attack commands of the live demo carry the name of the rule they trigger: `frer_excess_copies`, `frer_out_of_order`, `srp_oversized_request`, `srp_reservation_change`, `ptp_rogue_grandmaster`, `ptp_unannounced_sync`, `ptp_sequence_id`; the mixed FRER scenario is `frer_mixed`.
 - `ids/rules.py` is split by protocol (`frer.py`, `srp.py`, `ptp.py`), the thresholds moved to `ids/config.py`; the unit tests follow (`test_frer.py`, `test_srp.py`, `test_ptp.py`, `test_engine.py`, shared `helpers.py`).
-- `scapy/` is sorted into `layers/` (`cb.py`, `srp.py`), `samples/` (the sample frames and the gPTP capture) and `scripts/` (`gptp_sender.py`, `attacks.py`).
+- `scapy/` is sorted into `layers/` (`cb.py`, `srp.py`), `samples/` (the example pcaps `frer.pcap`, `srp_talker.pcap`, `srp_listener.pcap` and the gPTP capture) and `scripts/` (`pcap_sender.py`, which sends any pcap one frame per Enter and replaces `gptp_sender.py`; `make_samples.py`; `attacks.py`). The text samples `frer_sample` and `srp_sample` are gone.
+- Every source file names its author (Doganalp Ergenc, written with the assistance of Claude); `.claude/`, `CLAUDE.md` and `CLAUDE.local.md` are ignored by git.
 
 ### Optimizations and hardening
 - PTP: read TLV values as `bytes &size=` instead of a `uint8` vector sized by an attacker-controlled length.
