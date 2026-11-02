@@ -1,56 +1,51 @@
-# Spicy
+# Data plane: Spicy grammars and Zeek scripts
 
-Spicy is used in this project to parse SRP and FRER frames and make the packet data available to Zeek. To run Spicy with Zeek, install the Spicy Plugin first.
+## Files
 
-# File functionality
+| File | Purpose |
+| --- | --- |
+| `spicy-analyzer/FRER.spicy`, `SRP.spicy`, `PTP.spicy` | grammars of the redundancy tag, enhanced SRP and (g)PTP; the public types are the entry points (`PTPFrame` over Ethernet, `PTPUDPFrame` over UDP) |
+| `spicy-analyzer/TSN.evt` | packet analyzers for the ethertypes `0xF1C1` (FRER), `0x22EA` (SRP), `0x88F7` (PTP), a protocol analyzer for PTP over UDP (ports 319 and 320), the exports to Zeek, the event hooks and the `%error` hooks |
+| `scripts/register.zeek` | registers the analyzers (also behind a VLAN tag) |
+| `scripts/main.zeek` | shared options, the error log and the helper that sends records to the IDS |
+| `scripts/cb.zeek`, `ptp.zeek`, `srp.zeek` | log the respective messages and send them to the IDS |
+| `scripts/broker.zeek` | the connection to the IDS |
+| `scripts/flush.zeek` | optional regular log flush for live demos |
 
-`FRER.spicy`, `SRP.spicy`, and `PTP.spicy` hold the grammar for FRER, SRP, and PTP frames, respectively. The public types are the entry points to the grammar.
+`../build.sh` compiles the grammars to `../build/spicy/tsn.hlto`; Zeek finds it through `ZEEK_SPICY_MODULE_PATH`, so
+`zeek -r x.pcap spicy/scripts` is the whole invocation.
 
-`Zeek_TSN.spicy` prepares the type conversion from Spicy data types to Zeek data types. It might also include other functionality addressing information exchange between Spicy and Zeek.
+## Logs
 
-`TSN.evt` adds the packet analyzer and hooks on the spicy entry points that execute Zeek events. The hooks get triggered on successful completion of the grammar. 
+| Log | One row per | Notes |
+| --- | --- | --- |
+| `cb.log` | FRER frame | sequence number and the reserved field |
+| `ptp.log` | PTP message | the header (transportSpecific, domain, flags, sequenceId, ...) and the fields of the message type; PTP over UDP rows also carry `uid`, `src_port`, `dst_port` and IP addresses in `src`/`dst` |
+| `srp.log` | Talker or Listener Enhanced message | stream, traffic specification, status, interfaces |
+| `tsn_errors.log` | malformed frame | which protocol and why: truncated fields, wrong lengths, missing or duplicate TLVs, reserved PTP message types, `messageLength` that does not match the frame |
+| `notice.log` | alert of the IDS | `TSN::Possible_Attack` |
 
-`TSN.hlto` is the compiled grammar from the files listed above.
+PTP tolerates Ethernet padding and suffix TLVs; over UDP any octet beyond `messageLength` is reported.
 
-`TSN.zeek` registers the packet analyzer in Zeek.
+## Options
 
-`main.zeek` adds Zeek events and their data structure. It also activates the Zeek Broker.
+Set on the command line, e.g. `TSN::enable_broker=F`:
 
-# Startup
+| Option | Default | Effect |
+| --- | --- | --- |
+| `TSN::enable_broker` | `T` | listen for the IDS on `127.0.0.1:9999` and send it the messages; disable for plain pcap runs |
+| `TSN::wait_for_peer` | `F` | pause until the IDS announces itself (`ids_ready`) and end the run when it is done (`ids_done`); for offline runs with the IDS |
+| `TSN::log_flush_interval` | `0 secs` | flush the logs this often, so that `tail -f` shows them as they are written |
 
-For spicy as standalone software, there is nothing other than installation required to use Spice. To use Spicy with Zeek, the Spicy Plugin for Zeek must be installed.
+## Known gaps
 
-# Usage example
+- The Spicy UDP analyzer stops parsing a flow after its first parse error, so one malformed PTP datagram blinds the
+  analyzer for that 4-tuple until the connection times out. Length problems are still reported (they are not parse errors).
 
-To test a grammar, create a frame with Scapy and then analyze its raw byte representation with Spicy:
-
-```sh
-printf '\x0f\n\x02\x08\x00\x00\x00\x00\x00\x00\x00\x00\x10\x05\x11\x03\x00\x00\x00' | HILTI_DEBUG=spicy spicy-driver -d $HOME/spicy/spicy-analyzer/SRP.spicy
-```
-Here we created a frame without the Ether and VLAN layer using `listenerEnhancedFirstValueMinimal` from the `srp_sample`. `spicy-driver` will compile the grammar and then parse the frame. If it does not throw any error messages, then the frame got successfully parsed. Output like the following is expected:
-
-```sh
-SRPFrame recieved
-no endStationInterfaces
-no userToNetworkRequirements
-no interfaceCapabilities
-Done
-```
-
-To show the actual values Spicy extracted from the frame, add a hook to `SRPFrame` in the grammar:
-```sh
-on %done { print "Done";  print self; }
-```
-
-This will add something like the following depending on the input of the parser:
-```sh
-[$tlvType=SrpTlvTypeCode::Listener, $talkerEnhanced_FirstValue=(not set), $listenerEnhanced_FirstValue=[$listener=[$talkerLen=10, $streamID=[$macAddress=b"\x00\x00\x00\x00\x00\x00", $uniqueID=0], $endStationInterfaces=(not set), $userToNetworkRequirements=(not set), $interfaceCapabilities=(not set)], $status=[$code=SrpTlvTypeCode::Status, $statusLen=5, $statusInfo=[$talkerStatus=EnumTalkerStatus::NONE, $listenerStatus=EnumListenerStatus::NONE, $failureCode=0], $accumulatedLatency=(not set), $tlvT1=b"", $failedInterfaces=(not set), $interfaceConfigurations=(not set), $tlvT2=(not set)]]]
-```
-
-Spicy can be used on its own. However, for Zeek to use Spicy, compiled grammar is required. Compile a grammar with:
+## Trying a grammar on its own
 
 ```sh
-source $HOME/env/bin/activate
-spicyz Zeek_TSN.spicy FRER.spicy SRP.spicy PTP.spicy TSN.evt -o TSN.hlto
+printf '\x0f\n\x02\x08\x00\x00\x00\x00\x00\x00\x00\x00\x10\x05\x11\x03\x00\x00\x00' | /opt/zeek/bin/spicy-driver -d spicy-analyzer/SRP.spicy
 ```
-This creates `TSN.hlto` which can be used by Zeek.
+
+Frames to try can be forged with the Scapy layers in [`../scapy/`](../scapy/README.md).
