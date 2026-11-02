@@ -1,15 +1,15 @@
-from scapy.all import *
+"""Send the gPTP frames of samples/ptpv2_vlan.pcap, one per Enter.
 
+    sudo .venv/bin/python scapy/scripts/gptp_sender.py [interface]        (default enp0s3)
+"""
+import os
+import sys
 
-gptp_pcap_file_path = "ptpv2_vlan.pcap"
+from scapy.all import rdpcap, sendp
 
+pcap = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "samples", "ptpv2_vlan.pcap")
+interface = sys.argv[1] if len(sys.argv) > 1 else "enp0s3"
 
-
-gptp_packets = rdpcap(gptp_pcap_file_path)
-
-for gptp_packet in gptp_packets:
-    print(f"Press 'Enter' to send the next packet...")
-    input()  # Wait for user to press "Enter"
-    
-    # Send the packet
-    sendp(gptp_packet, iface="enp0s3")
+for gptp_packet in rdpcap(pcap):
+    input("Press Enter to send the next packet...")
+    sendp(gptp_packet, iface=interface)

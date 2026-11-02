@@ -2,23 +2,22 @@
 
 Scapy layers to forge and send SRP and FRER frames.
 
-## Files
+## Layout
 
-| File | Purpose |
+| Folder | Content |
 | --- | --- |
-| `CB.py`, `SRP.py` | Scapy layers for the FRER redundancy tag and for enhanced SRP; started directly they open an interactive Scapy shell |
-| `frer_sample`, `srp_sample` | frames to paste into that shell |
-| `gptp_packet_sender.py`, `ptpv2_vlan.pcap` | sends the gPTP frames of the pcap, one per Enter |
-| `scapy-attacks.py` | the original attack script, not updated for the new IDS; the `tsn` commands of the [live demo](../tests/live/README.md) replace it |
+| `layers/` | the protocol definitions: `cb.py` (FRER redundancy tag, class `CB`) and `srp.py` (enhanced SRP); started directly they open an interactive Scapy shell |
+| `samples/` | frames to paste into that shell (`frer_sample`, `srp_sample`) and a gPTP capture (`ptpv2_vlan.pcap`) |
+| `scripts/` | runnable senders: `gptp_sender.py` sends the frames of the capture, one per Enter; `attacks.py` is the original attack script (needs numpy), not updated for the new IDS, whose functions now carry the names of the rules that detect them (`frer_excess_copies()`, `srp_oversized_request()`, ...). The `tsn` commands of the [live demo](../tests/live/README.md) replace it |
 
-The tests and the demo build their frames with `tests/gen_pcaps.py`, which uses these layers.
+The tests and the demo build their frames with `tests/gen_pcaps.py`, which uses the layers.
 
 ## Usage
 
 Scapy needs root to send. Install it in the project's venv (`python3 -m venv .venv && .venv/bin/pip install scapy`) and start a layer, on the machine or Mininet host that should send the frames (`xterm h1` in the Mininet CLI):
 
 ```sh
-sudo .venv/bin/python scapy/SRP.py
+sudo .venv/bin/python scapy/layers/srp.py
 ```
 
 This will start up a Scapy interactive shell. In this shell, you can create frames and send them to other hosts in your network. Scapy can be used to create malformed frames. Therefore there is no mechanism to check if created frames are of valid form.
