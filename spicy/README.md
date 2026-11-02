@@ -35,6 +35,7 @@ Set on the command line after the script path, as `TSN::<option>=<value>` (boole
 | --- | --- | --- |
 | `TSN::enable_broker` | `T` | listen for the IDS on `127.0.0.1:9999` and send it the messages; disable for plain pcap runs |
 | `TSN::wait_for_peer` | `F` | pause until the IDS announces itself (`ids_ready`) and end the run when it is done (`ids_done`); for offline runs with the IDS |
+| `TSN::broker_listen_addr`, `TSN::broker_listen_port` | `127.0.0.1`, `9999/tcp` | where Zeek listens for the IDS |
 | `TSN::log_flush_interval` | `0 secs` | flush the logs this often, so that `tail -f` shows them as they are written |
 
 ### Why `TSN::enable_broker=F` for a plain pcap run

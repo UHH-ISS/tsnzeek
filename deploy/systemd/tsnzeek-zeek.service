@@ -1,0 +1,29 @@
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+# Zeek with the TSN analyzers, capturing on $TSNZEEK_INTERFACE (/etc/tsnzeek/tsnzeek.env).
+# @TSNZEEK_HOME@ and @ZEEK_PREFIX@ are filled in by deploy/install.sh.
+[Unit]
+Description=TSNZeek: Zeek with the FRER, SRP and PTP analyzers
+Documentation=file:@TSNZEEK_HOME@/deploy/README.md
+After=network.target
+PartOf=tsnzeek.target
+
+[Service]
+User=tsnzeek
+Group=tsnzeek
+EnvironmentFile=/etc/tsnzeek/tsnzeek.env
+Environment=ZEEK_SPICY_MODULE_PATH=@TSNZEEK_HOME@/build/spicy
+# Logs are written to the working directory; Zeek rotates them daily (rotated files get the date in their name).
+WorkingDirectory=/var/log/tsnzeek
+ExecStart=@ZEEK_PREFIX@/bin/zeek -C -i ${TSNZEEK_INTERFACE} @TSNZEEK_HOME@/spicy/scripts LogAscii::use_json=T TSN::log_flush_interval=1sec Log::default_rotation_interval=1day
+AmbientCapabilities=CAP_NET_RAW CAP_NET_ADMIN
+CapabilityBoundingSet=CAP_NET_RAW CAP_NET_ADMIN
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=yes
+ReadWritePaths=/var/log/tsnzeek
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=tsnzeek.target

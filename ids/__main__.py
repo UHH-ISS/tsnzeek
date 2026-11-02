@@ -17,6 +17,7 @@
 
 import argparse
 import json
+import os
 import sys
 import time
 
@@ -29,7 +30,19 @@ from .srp import SrpDetector
 LOG_KINDS = {"cb": "cb", "ptp": "ptp", "srp": "srp"}
 
 
+SYSTEM_CONFIG = "/etc/tsnzeek/ids.json"
+
+
+def find_config(path):
+    """--config, else $TSNZEEK_CONFIG, else /etc/tsnzeek/ids.json if it exists, else None (the defaults of Config)."""
+    path = path or os.environ.get("TSNZEEK_CONFIG")
+    if path:
+        return path
+    return SYSTEM_CONFIG if os.path.isfile(SYSTEM_CONFIG) else None
+
+
 def build_engine(config_path):
+    config_path = find_config(config_path)
     config = Config()
     if config_path:
         with open(config_path) as f:
@@ -37,9 +50,16 @@ def build_engine(config_path):
     return Engine([FrerDetector(config), SrpDetector(config), PtpDetector(config)])
 
 
+ALERT_LOG = None        # file object of --alert-log, set by main()
+
+
 def report(alerts, notify=None):
     for a in alerts:
-        print(f"ALERT {a.rule} ts={a.ts:.6f} {a.msg}", flush=True)
+        line = f"ALERT {a.rule} ts={a.ts:.6f} {a.msg}"
+        print(line, flush=True)
+        if ALERT_LOG:
+            ALERT_LOG.write(line + "\n")
+            ALERT_LOG.flush()
         if notify:
             notify(str(a))
 
@@ -76,10 +96,10 @@ def live(args):
     sub = ep.make_subscriber("/topic/tsn")
     status = ep.make_status_subscriber(True)
     ep.peer(args.host, args.port, 1.0)                  # Broker retries every second
-    deadline = time.monotonic() + args.connect_timeout
+    deadline = None if args.service else time.monotonic() + args.connect_timeout
     connected = False
     while not connected:
-        if time.monotonic() > deadline:
+        if deadline and time.monotonic() > deadline:
             sys.exit(f"could not connect to Zeek at {args.host}:{args.port}")
         for st in status.poll():                        # errors while Zeek is not up yet are retried by Broker
             connected = connected or (isinstance(st, broker.Status) and st.code() == broker.SC.PeerAdded)
@@ -96,6 +116,12 @@ def live(args):
 
     idle_since = time.monotonic()
     while True:
+        if args.service:                                # Broker re-peers by itself when Zeek restarts
+            for st in status.poll():
+                if isinstance(st, broker.Status) and st.code() in (broker.SC.PeerLost, broker.SC.PeerRemoved):
+                    print("Lost Zeek, waiting for it to come back", flush=True)
+                elif isinstance(st, broker.Status) and st.code() == broker.SC.PeerAdded:
+                    print("Connected to Zeek", flush=True)
         batch = sub.poll()
         if not batch:
             if args.offline:
@@ -122,7 +148,11 @@ def live(args):
 
 def main():
     ap = argparse.ArgumentParser(prog="python3 -m ids", description="TSNZeek intrusion detection: consumes the messages Zeek parsed and raises alerts.")
-    ap.add_argument("--config", help="JSON file overriding the thresholds in ids/config.py Config")
+    ap.add_argument("--config", help="JSON file overriding the thresholds in ids/config.py Config "
+                                     "(default: $TSNZEEK_CONFIG, else /etc/tsnzeek/ids.json if it exists, else the defaults)")
+    ap.add_argument("--alert-log", metavar="FILE", help="also append the alerts to this file (default: $TSNZEEK_ALERT_LOG, else none)")
+    ap.add_argument("--service", action="store_true",
+                    help="run as a service: wait for Zeek without a time limit and keep running when Zeek restarts")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=9999)
     ap.add_argument("--connect-timeout", type=float, default=30.0, help="seconds to wait for Zeek")
@@ -133,6 +163,10 @@ def main():
     ap.add_argument("--drain", type=float, default=0.0,
                     help="advance the clock by this many seconds at the end so that timeouts fire")
     args = ap.parse_args()
+    global ALERT_LOG
+    alert_log = args.alert_log or os.environ.get("TSNZEEK_ALERT_LOG")
+    if alert_log:
+        ALERT_LOG = open(alert_log, "a")
     (replay if args.replay else live)(args)
 
 

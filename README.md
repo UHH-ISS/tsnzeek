@@ -32,6 +32,7 @@ logs everything it parses, and passes the messages to an intrusion detection mod
 | --- | --- |
 | [`spicy/`](spicy/README.md) | grammars, `TSN.evt`, the Zeek scripts (data plane) |
 | [`ids/`](ids/README.md) | the intrusion detection (control plane) |
+| [`deploy/`](deploy/README.md) | optional systemd services, configuration and log locations |
 | [`tests/`](tests/README.md) | unit and pcap tests; [`tests/live/`](tests/live/README.md) the Mininet network, live tests and demo |
 | [`scapy/`](scapy/README.md) | Scapy layers for FRER and SRP, the original attack script |
 | `build.sh` | compiles the grammars and runs the unit tests afterwards (`--no-test` skips them) |
@@ -75,6 +76,8 @@ Monitor an interface with the IDS (two terminals; Zeek waits for the IDS on `127
 sudo ZEEK_SPICY_MODULE_PATH=build/spicy /opt/zeek/bin/zeek -C -i <interface> spicy/scripts LogAscii::use_json=T
 PYTHONPATH=/opt/zeek/lib/zeek/python python3 -m ids [--config thresholds.json]
 ```
+
+To run both as systemd services (optional), see [`deploy/`](deploy/README.md).
 
 Alerts appear on the IDS console and come back to Zeek as `Possible_Attack` entries of `notice.log`. To run the rules on
 logs of an earlier run, without Zeek or Broker: `python3 -m ids --replay cb.log srp.log ptp.log`.
