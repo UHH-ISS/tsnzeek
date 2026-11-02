@@ -5,9 +5,9 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 
+from ids.config import Config  # noqa: E402
 from ids.engine import Engine  # noqa: E402
-from ids.ptp_rules import PtpDetector  # noqa: E402
-from ids.rules import Config  # noqa: E402
+from ids.ptp import PtpDetector  # noqa: E402
 
 GM, ROGUE, OTHER = "008063ffff0009ba", "deadbeefcafe0001", "feedfacefeed0002"
 
@@ -32,7 +32,7 @@ class PtpRules(unittest.TestCase):
         self.alerts = [a for kind, msg in messages for a in engine.feed(kind, msg)]
         return [a.rule for a in self.alerts]
 
-    # ---- ptp1
+    # ---- ptp_rogue_grandmaster
 
     def test_a_steady_master_is_fine(self):
         msgs = [announce(0, 1), ptp(0.1, "Sync", 1), ptp(0.2, "Follow_Up", 1), announce(1, 2), ptp(1.1, "Sync", 2)]
@@ -40,16 +40,16 @@ class PtpRules(unittest.TestCase):
 
     def test_a_better_grandmaster_takes_over(self):
         msgs = [announce(0, 1), announce(1, 1, gm=ROGUE, p1=1, cls=6)]
-        self.assertEqual(self.run_rules(msgs), ["ptp1"])
+        self.assertEqual(self.run_rules(msgs), ["ptp_rogue_grandmaster"])
         self.assertIn(ROGUE, self.alerts[0].msg)
 
     def test_a_takeover_is_reported_once(self):
         msgs = [announce(0, 1), announce(1, 1, gm=ROGUE, p1=1), announce(2, 2, gm=ROGUE, p1=1), announce(3, 3, gm=ROGUE, p1=1)]
-        self.assertEqual(self.run_rules(msgs), ["ptp1"])
+        self.assertEqual(self.run_rules(msgs), ["ptp_rogue_grandmaster"])
 
     def test_the_old_master_announcing_again_is_a_backup_not_a_second_alert(self):
         msgs = [announce(0, 1), announce(1, 1, gm=ROGUE, p1=1), announce(2, 2)]
-        self.assertEqual(self.run_rules(msgs), ["ptp1"])
+        self.assertEqual(self.run_rules(msgs), ["ptp_rogue_grandmaster"])
 
     def test_a_worse_second_clock_is_a_backup(self):
         msgs = [announce(0, 1, p1=100), announce(1, 1, gm=OTHER, p1=200), announce(2, 2, p1=100)]
@@ -58,7 +58,7 @@ class PtpRules(unittest.TestCase):
     def test_each_attribute_of_the_dataset_counts(self):
         for kwargs in ({"p1": 128, "cls": 6}, {"p1": 127}):
             with self.subTest(kwargs):
-                self.assertEqual(self.run_rules([announce(0, 1), announce(1, 1, gm=ROGUE, **kwargs)]), ["ptp1"])
+                self.assertEqual(self.run_rules([announce(0, 1), announce(1, 1, gm=ROGUE, **kwargs)]), ["ptp_rogue_grandmaster"])
 
     def test_failover_after_the_master_went_silent_is_legitimate(self):
         msgs = [announce(0, 1), announce(20, 1, gm=OTHER, p1=1)]
@@ -71,26 +71,26 @@ class PtpRules(unittest.TestCase):
 
     def test_a_slave_only_announce_does_not_hide_a_real_takeover(self):
         msgs = [announce(0, 1), announce(1, 1, gm=OTHER, p1=248, cls=255), announce(2, 1, gm=ROGUE, p1=1, cls=6)]
-        self.assertEqual(self.run_rules(msgs), ["ptp1"])
+        self.assertEqual(self.run_rules(msgs), ["ptp_rogue_grandmaster"])
 
     def test_domains_are_independent(self):
         msgs = [announce(0, 1), announce(1, 1, gm=OTHER, p1=1, domain=1)]
         self.assertEqual(self.run_rules(msgs), [])
 
-    # ---- ptp2
+    # ---- ptp_unannounced_sync
 
     def test_sync_from_a_clock_that_never_announced(self):
         msgs = [announce(0, 1), ptp(1, "Sync", 1, clock=OTHER)]
-        self.assertEqual(self.run_rules(msgs), ["ptp2"])
+        self.assertEqual(self.run_rules(msgs), ["ptp_unannounced_sync"])
 
     def test_follow_up_counts_too_and_is_reported_once_per_clock(self):
         msgs = [announce(0, 1), ptp(1, "Sync", 1, clock=OTHER), ptp(2, "Follow_Up", 1, clock=OTHER),
                 ptp(3, "Sync", 2, clock=OTHER)]
-        self.assertEqual(self.run_rules(msgs), ["ptp2"])
+        self.assertEqual(self.run_rules(msgs), ["ptp_unannounced_sync"])
 
     def test_a_rogue_that_announced_is_a_master_for_ptp2(self):
         msgs = [announce(0, 1), announce(1, 1, gm=ROGUE, p1=1), ptp(2, "Sync", 1, clock=ROGUE)]
-        self.assertEqual(self.run_rules(msgs), ["ptp1"])
+        self.assertEqual(self.run_rules(msgs), ["ptp_rogue_grandmaster"])
 
     def test_sync_before_any_announce_is_tolerated_while_learning(self):
         msgs = [ptp(0, "Sync", 1), ptp(1, "Sync", 2), announce(2, 1)]
@@ -98,38 +98,38 @@ class PtpRules(unittest.TestCase):
 
     def test_sync_without_any_announce_is_reported_after_learning(self):
         msgs = [ptp(0, "Sync", 1), ptp(10, "Sync", 2)]
-        self.assertEqual(self.run_rules(msgs, ptp_learning_time=5), ["ptp2"])
+        self.assertEqual(self.run_rules(msgs, ptp_learning_time=5), ["ptp_unannounced_sync"])
 
     def test_an_announced_master_is_checked_immediately(self):
         msgs = [ptp(0, "Sync", 1), announce(0.5, 1), ptp(1, "Sync", 2, clock=OTHER)]
-        self.assertEqual(self.run_rules(msgs, ptp_learning_time=5), ["ptp2"])
+        self.assertEqual(self.run_rules(msgs, ptp_learning_time=5), ["ptp_unannounced_sync"])
 
-    # ---- ptp3
+    # ---- ptp_sequence_id
 
     def test_sequence_ids_advance_by_one_and_wrap(self):
         msgs = [announce(0, 1)] + [ptp(i, "Sync", s) for i, s in enumerate((65534, 65535, 0, 1), 1)]
         self.assertEqual(self.run_rules(msgs), [])
 
     def test_a_repeated_sequence_id(self):
-        self.assertEqual(self.run_rules([announce(0, 1), ptp(1, "Sync", 5), ptp(2, "Sync", 5)]), ["ptp3"])
+        self.assertEqual(self.run_rules([announce(0, 1), ptp(1, "Sync", 5), ptp(2, "Sync", 5)]), ["ptp_sequence_id"])
         self.assertIn("repeated", self.alerts[0].msg)
 
     def test_a_sequence_id_going_back(self):
-        self.assertEqual(self.run_rules([announce(0, 1), ptp(1, "Sync", 5), ptp(2, "Sync", 3)]), ["ptp3"])
+        self.assertEqual(self.run_rules([announce(0, 1), ptp(1, "Sync", 5), ptp(2, "Sync", 3)]), ["ptp_sequence_id"])
         self.assertIn("went back", self.alerts[0].msg)
 
     def test_a_skipped_sequence_id(self):
-        self.assertEqual(self.run_rules([announce(0, 1), ptp(1, "Sync", 5), ptp(2, "Sync", 9)]), ["ptp3"])
+        self.assertEqual(self.run_rules([announce(0, 1), ptp(1, "Sync", 5), ptp(2, "Sync", 9)]), ["ptp_sequence_id"])
         self.assertIn("3 missing", self.alerts[0].msg)
 
     def test_a_tolerated_gap(self):
         msgs = [announce(0, 1), ptp(1, "Sync", 5), ptp(2, "Sync", 7)]
         self.assertEqual(self.run_rules(msgs, ptp_seq_gap_tolerance=1), [])
-        self.assertEqual(self.run_rules(msgs, ptp_seq_gap_tolerance=0), ["ptp3"])
+        self.assertEqual(self.run_rules(msgs, ptp_seq_gap_tolerance=0), ["ptp_sequence_id"])
 
     def test_injection_is_followed_by_one_more_alert_when_the_real_master_resumes(self):
         msgs = [announce(0, 1), ptp(1, "Sync", 5), ptp(2, "Sync", 1000), ptp(3, "Sync", 6)]
-        self.assertEqual(self.run_rules(msgs), ["ptp3", "ptp3"])
+        self.assertEqual(self.run_rules(msgs), ["ptp_sequence_id", "ptp_sequence_id"])
 
     def test_message_types_ethernet_and_udp_are_counted_separately(self):
         msgs = [announce(0, 1), ptp(1, "Sync", 5), ptp(1.1, "Follow_Up", 5), ptp(1.2, "Sync", 5, udp=True),

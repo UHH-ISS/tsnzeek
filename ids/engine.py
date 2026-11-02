@@ -6,7 +6,7 @@
 # records Zeek also writes to cb.log, ptp.log and srp.log) and a clock that is the timestamp of the
 # newest message, so a pcap replayed at any speed gives the same alerts as live traffic.
 #
-# A detector is anything with on_message/on_tick: the rule set in rules.py, a statistical test or an
+# A detector is anything with on_message/on_tick: the rules of frer.py, srp.py and ptp.py, a statistical test or an
 # embedded ML model all plug in the same way.
 #
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
@@ -26,6 +26,11 @@ class Alert:
 
     def __str__(self):
         return f"{self.rule}: {self.msg}"
+
+
+def stream_key(mac, vlan) -> str:
+    """How alerts name a stream: source (or stream) MAC address and VLAN id."""
+    return f"{mac}/{'-' if vlan is None else vlan}"
 
 
 class Detector:

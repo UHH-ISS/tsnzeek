@@ -22,13 +22,13 @@ Four windows open, one in each corner of the screen; the Mininet CLI stays in th
 
 `tsn commands` lists what can be sent, legit traffic and attacks apart:
 
-| Legit traffic | Attacks (the rule that should fire) |
+| Legit traffic | Attacks (each raises the IDS rule of the same name) |
 | --- | --- |
-| `stream` (FRER), `ptp_loop` (gPTP and PTP/UDP), `ptp`, `srp_normal`, `replay x.pcap` | `frer_extra_copy` attack1, `frer_skip` attack3, `frer_dup`, `srp_flood` attack5 and 9, `srp_change` attack8, `ptp_rogue_gm` ptp1, `ptp_rogue_sync` ptp2, `ptp_seq` ptp3 |
+| `stream` (FRER), `ptp_loop` (gPTP and PTP/UDP), `ptp`, `srp_normal`, `replay x.pcap` | `frer_excess_copies`, `frer_out_of_order`, `frer_mixed` (several FRER rules), `srp_oversized_request` (also `srp_unused_reservation` later), `srp_reservation_change`, `ptp_rogue_grandmaster`, `ptp_unannounced_sync`, `ptp_sequence_id` |
 
 A walk-through: in the h1 window start `tsn ptp_loop` (the log window fills with Sync lines, the IDS stays silent), then
-in the attacker window `tsn ptp_rogue_gm`, `tsn ptp_rogue_sync`, `tsn ptp_seq`. With `--ptp` do not run `ptp_loop`; the
-attacks work against the real master (`tsn ptp_seq --clock real`). The same with `tsn stream` and `tsn frer_extra_copy`;
+in the attacker window `tsn ptp_rogue_grandmaster`, `tsn ptp_unannounced_sync`, `tsn ptp_sequence_id`. With `--ptp` do not run `ptp_loop`; the
+attacks work against the real master (`tsn ptp_sequence_id --clock real`). The same with `tsn stream` and `tsn frer_excess_copies`;
 stop a stream with Ctrl-C and the IDS reports it dead after five seconds. Invalid commands and options give a short message.
 
 ## Scenarios
@@ -113,5 +113,5 @@ What cannot be shown is the effect of an attack on the synchronization itself, o
 
 - Windows do not open: use `sudo -E`, run `xhost +si:localuser:root`; without X11 use `--cli`.
 - `ptp4l` ports go FAULTY: the network was not built with the user-space hub (`--hub`; `--ptp` and the `ptp_real` scenarios do it).
-- Alert counts of `attack4`/`attack9` differ: they depend on timeouts and wall-clock ticks; the scenarios wait 8 s.
+- Alert counts of `frer_dead_stream`/`srp_unused_reservation` differ: they depend on timeouts and wall-clock ticks; the scenarios wait 8 s.
 - After a crash: `sudo mn -c`.

@@ -41,23 +41,23 @@ def scenario(steps, wait, alerts, ptp_rows=0, **options):
 
 
 # steps: (host, send.py command), or ("wait", seconds). `wait` is the time to let the IDS finish afterwards: it must
-# exceed the 5 s timeout of config.json plus one tick for the timeout rules (attack4, attack9) to fire.
+# exceed the 5 s timeout of config.json plus one tick for the timeout rules (frer_dead_stream, srp_unused_reservation) to fire.
 # ptp_rows is the expected number of ptp.log rows (None: do not check), ptp_types message types that must appear in it,
 # real: run ptp4l as master on h1 and client on h2.
 SCENARIOS = {
-    "frer_dup": scenario([("h1", "frer_dup")], 8, {"attack1": 1, "attack3": 1, "attack4": 2}),
-    "frer_extra_copy": scenario([("attacker", "frer_extra_copy")], 8, {"attack1": 6, "attack4": 1}),
-    "frer_skip": scenario([("attacker", "frer_skip")], 8, {"attack3": 5, "attack4": 1}),
-    "srp_flood": scenario([("attacker", "srp_flood")], 8, {"attack5": 3, "attack9": 1}),
-    "srp_change": scenario([("attacker", "srp_change")], 8, {"attack8": 1, "attack9": 1}),
+    "frer_mixed": scenario([("h1", "frer_mixed")], 8, {"frer_excess_copies": 1, "frer_out_of_order": 1, "frer_dead_stream": 2}),
+    "frer_excess_copies": scenario([("attacker", "frer_excess_copies")], 8, {"frer_excess_copies": 6, "frer_dead_stream": 1}),
+    "frer_out_of_order": scenario([("attacker", "frer_out_of_order")], 8, {"frer_out_of_order": 5, "frer_dead_stream": 1}),
+    "srp_oversized_request": scenario([("attacker", "srp_oversized_request")], 8, {"srp_oversized_request": 3, "srp_unused_reservation": 1}),
+    "srp_reservation_change": scenario([("attacker", "srp_reservation_change")], 8, {"srp_reservation_change": 1, "srp_unused_reservation": 1}),
     "ptp": scenario([("h1", "ptp")], 2, {}, 5),
-    "ptp_attacks": scenario([("h1", "ptp"), ("attacker", "ptp_rogue_gm"), ("attacker", "ptp_rogue_sync"),
-                             ("attacker", "ptp_seq")], 3, {"ptp1": 1, "ptp2": 1, "ptp3": 2}, 16),
+    "ptp_attacks": scenario([("h1", "ptp"), ("attacker", "ptp_rogue_grandmaster"), ("attacker", "ptp_unannounced_sync"),
+                             ("attacker", "ptp_sequence_id")], 3, {"ptp_rogue_grandmaster": 1, "ptp_unannounced_sync": 1, "ptp_sequence_id": 2}, 16),
     # Real ptp4l messages (gPTP profile). Do they get parsed, logged and passed on, and does the IDS stay quiet?
     "ptp_real": scenario([("wait", 10)], 1, {}, None, real=True, ptp_types=REAL_PTP_TYPES),
-    # ... and do the attacks work against a real master? ptp_seq needs the master's clock identity (h1's MAC, as ptp4l builds it).
-    "ptp_real_attacks": scenario([("wait", 8), ("attacker", "ptp_rogue_gm"), ("attacker", "ptp_rogue_sync"),
-                                  ("attacker", "ptp_seq --clock real")], 3, {"ptp1": 1, "ptp2": 1, "ptp3": 3}, None,
+    # ... and do the attacks work against a real master? ptp_sequence_id needs the master's clock identity (h1's MAC, as ptp4l builds it).
+    "ptp_real_attacks": scenario([("wait", 8), ("attacker", "ptp_rogue_grandmaster"), ("attacker", "ptp_unannounced_sync"),
+                                  ("attacker", "ptp_sequence_id --clock real")], 3, {"ptp_rogue_grandmaster": 1, "ptp_unannounced_sync": 1, "ptp_sequence_id": 3}, None,
                                  real=True, ptp_types=REAL_PTP_TYPES),
 }
 
@@ -344,7 +344,7 @@ def main():
             ptp4l = RealPtp(net, os.path.join(workdir, "cli")) if real else None
             windows = open_windows(net, mon, ptp4l) if demo else []
             print(f"Zeek and the IDS run on mon (output in {workdir}/cli). Send with, e.g.\n"
-                  f"  h1 {PY} {SEND} frer_dup h1-eth0\nType exit to stop everything.")
+                  f"  h1 {PY} {SEND} frer_mixed h1-eth0\nType exit to stop everything.")
             CLI(net)
             for w in windows:
                 w.terminate()

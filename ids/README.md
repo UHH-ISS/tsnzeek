@@ -10,26 +10,33 @@ python3 -m ids --replay cb.log srp.log ptp.log                                  
 
 `--drain SECONDS` advances the clock at the end so that timeouts fire, `--offline` is for `zeek -r x.pcap ...
 TSN::wait_for_peer=T` runs (the tests use it). Thresholds come from a JSON file whose keys are the fields of `Config` in
-`rules.py`.
+`config.py`.
 
 ## Rules
 
-| Rule | Detects | Main thresholds (`Config`) |
-| --- | --- | --- |
-| `attack1` | more copies of a FRER frame than member streams | `nr_of_member_streams` |
-| `attack3` | FRER frames out of order, accepted or discarded by the sequence recovery | `frer_history_size`, `recovery_reset_time` |
-| `attack4` | dead member streams (a stream or some copies stop) | `timeout` |
-| `attack5` | an SRP reservation above the resource thresholds | `interval_threshold`, `max_frames_per_interval_threshold`, `max_frame_size_threshold` |
-| `attack6` | an SRP bandwidth request more than two standard deviations from the recent ones | `srp_bandwidth_history_len` |
-| `attack7` | too many SRP requests in a time window | `nr_of_requests_threshold`, `time_window_threshold` |
-| `attack8` | a request that changes an existing reservation | |
-| `attack9` | an SRP reservation with no FRER traffic | `timeout` |
-| `ptp1` | a grandmaster with a better clock than the current one announces itself | `ptp_gm_timeout` |
-| `ptp2` | Sync or Follow_Up from a clock that never announced itself | `ptp_learning_time` |
-| `ptp3` | sequenceId repeated, going back or skipping (Ethernet and UDP counted apart) | `ptp_seq_gap_tolerance`, `ptp_seq_reset_time` |
+Every rule has a name that says what it detects; the same name appears in alerts, tests and the `tsn` attack commands of
+the [live demo](../tests/live/README.md) (where one exists). The last column is the number in the original
+`attack-detection.py` and the paper.
 
-FRER and SRP rules are in `rules.py`, PTP rules in `ptp_rules.py`. The PTP rules judge message content and sequences,
-never the local clock, and they learn what is normal from the traffic: a master that announced itself, the sequence so far.
+| File | Rule | Detects | Main thresholds (`Config`) | Original |
+| --- | --- | --- | --- | --- |
+| `frer.py` | `frer_excess_copies` | more copies of a frame than member streams | `nr_of_member_streams` | attack1 |
+| | `frer_out_of_order` | sequence numbers out of order, accepted or discarded by the sequence recovery | `frer_history_size`, `recovery_reset_time` | attack3 |
+| | `frer_dead_stream` | member streams that stopped (all or some copies) | `timeout` | attack4 |
+| `srp.py` | `srp_oversized_request` | a reservation above the resource thresholds | `interval_threshold`, `max_frames_per_interval_threshold`, `max_frame_size_threshold` | attack5 |
+| | `srp_bandwidth_jump` | a bandwidth more than two standard deviations from the recent requests | `srp_bandwidth_history_len` | attack6 |
+| | `srp_request_burst` | too many requests in a time window | `nr_of_requests_threshold`, `time_window_threshold` | attack7 |
+| | `srp_reservation_change` | a request for a reservation that exists already | | attack8 |
+| | `srp_unused_reservation` | a reservation with no FRER traffic | `timeout` | attack9 |
+| `ptp.py` | `ptp_rogue_grandmaster` | a grandmaster with a better clock than the current one announces itself | `ptp_gm_timeout` | |
+| | `ptp_unannounced_sync` | Sync or Follow_Up from a clock that never announced itself | `ptp_learning_time` | |
+| | `ptp_sequence_id` | sequenceId repeated, going back or skipping (Ethernet and UDP counted apart) | `ptp_seq_gap_tolerance`, `ptp_seq_reset_time` | |
+
+The timing attack 2 of the original script (`frer_timing_jitter` in `scapy/scripts/attacks.py`) has no rule.
+
+One detector per protocol: `FrerDetector` (cb.log), `SrpDetector` (srp.log; it also reads cb.log to see whether a reservation
+is used) and `PtpDetector` (ptp.log). `config.py` holds all thresholds. The PTP rules judge message content and sequences,
+never the local clock, and learn what is normal from the traffic: a master that announced itself, the sequence so far.
 Announce messages of slave-only clocks (class 255) are not grandmaster candidates.
 
 ## Design
@@ -38,8 +45,8 @@ The engine (`engine.py`) feeds messages to detectors and keeps a clock that is t
 so a pcap replayed at any speed gives the alerts of live traffic. Messages are the JSON records that Zeek also writes to
 `cb.log`, `ptp.log` and `srp.log`, delivered as `TSN::ids_message(kind, json)`.
 
-To add a detector (a statistical test, an embedded ML model), subclass `Detector`, implement `on_message(kind, msg)`
-(`kind` is `cb`, `ptp` or `srp`, `msg` a dict) and/or `on_tick(now)`, return `Alert`s, and add the instance to the engine in
+To add a detector (a statistical test, an embedded ML model), subclass `Detector` (`engine.py`), implement `on_message(kind, msg)`
+(`kind` is `cb`, `ptp` or `srp`, `msg` a dict) and/or `on_tick(now)`, return `Alert`s, and add the instance to the engine in `build_engine()` of
 `__main__.py`. Alerts return to Zeek as `TSN::raise_notice`.
 
 ## Known gaps
