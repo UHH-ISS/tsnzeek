@@ -7,13 +7,22 @@ as yourself: `./build.sh`.
 
 ## Step by step: the demo
 
-1. **Install** (once): `sudo apt-get install mininet openvswitch-switch tcpdump xterm linuxptp python3-venv`, then `python3 -m venv .venv && .venv/bin/pip install scapy` in the repository.
+1. **Install** (once): `sudo apt-get install mininet openvswitch-switch tcpdump xterm linuxptp python3-venv`, then `python3 -m venv .venv && .venv/bin/pip install scapy -r web/requirements.txt` in the repository (Scapy for the traffic, Django for the web interface).
 2. **Build** as yourself, not with sudo, so that `build/` does not become root-owned: `./build.sh`.
 3. **Allow root to open windows** on your display (once per login): `xhost +si:localuser:root`. Without a display, use `--cli` below.
 4. **Start** the network, Zeek, the IDS and the windows: `sudo -E python3 tests/live/run_live.py --demo` (add `--ptp` for real `ptp4l`). Four windows open in the corners of the screen; this terminal becomes the Mininet CLI.
-5. **Legit traffic**: in the **h1** window run `tsn ptp_loop` (or `tsn stream` for FRER). The **Zeek logs** window fills with one line per message; the **IDS alerts** window stays empty.
-6. **An attack**: in the **attacker** window run `tsn ptp_rogue_grandmaster`. Within a moment the IDS window shows `ALERT ptp_rogue_grandmaster ...` and the Zeek window shows the notice `TSN::Possible_Attack`. `tsn commands` lists the others (table below).
-7. **Stop**: Ctrl-C a running `tsn` command, then type `exit` in the Mininet CLI. Everything is stopped; the logs stay under the `/tmp/tsnzeek-live-*` directory printed at the end. After a crash run `sudo mn -c`.
+5. **Web interface** (optional, in a second terminal, as yourself, not with sudo). `run_live.py` prints the exact command at start; it is the web interface pointed at the demo's directory:
+
+   ```sh
+   TSNZEEK_CONTROL_DIR=/tmp/tsnzeek-live-XXXX/cli/control TSNZEEK_LOG_DIR=/tmp/tsnzeek-live-XXXX/cli \
+       .venv/bin/python web/manage.py runserver 127.0.0.1:8000
+   ```
+
+   Open <http://127.0.0.1:8000/>. The badges read `IDS: running` and `Zeek: connected`. The demo's thresholds (`config.json`, short timeouts) show up under *Config* as changed from the defaults.
+6. **Legit traffic**: in the **h1** window run `tsn ptp_loop` (or `tsn stream` for FRER). The **Zeek logs** window fills with one line per message; the **IDS alerts** window stays empty.
+7. **An attack**: in the **attacker** window run `tsn ptp_rogue_grandmaster`. Within a moment the IDS window shows `ALERT ptp_rogue_grandmaster ...`, the Zeek window shows the notice `TSN::Possible_Attack`, and the web interface lists the alert (*Overview*), counts it at the rule (*Rules*) and shows it in the *Logs* tab (`alerts`). `tsn commands` lists the others (table below).
+8. **Switch a rule off**: in the web interface *Rules* tab turn `ptp_rogue_grandmaster` (#301) off and repeat the attack: no alert. Turn it on and repeat: the alert is back. Change a threshold the same way in *Config* (for example `ptp_seq_gap_tolerance`) and repeat `tsn ptp_sequence_id`.
+9. **Stop**: Ctrl-C a running `tsn` command, stop the web interface with Ctrl-C, then type `exit` in the Mininet CLI. Everything is stopped; the logs stay under the `/tmp/tsnzeek-live-*` directory printed at the end. After a crash run `sudo mn -c`.
 
 No display (SSH, a server): `sudo python3 tests/live/run_live.py --cli` starts the same network, Zeek and IDS without windows and prints where their output goes (`/tmp/tsnzeek-live-*/cli`, `tail -f` the logs there) and a sample command. Send frames from the Mininet CLI, e.g. `h1 .venv/bin/python tests/live/send.py frer_mixed h1-eth0`; `exit` stops everything.
 
