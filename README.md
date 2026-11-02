@@ -106,10 +106,11 @@ checks and stops both. Everything it creates lives in one directory, `$TSNZEEK_D
 
 ```
 ~/tsnzeek/
-  logs/   cb.log ptp.log srp.log tsn_errors.log notice.log ...   Zeek's logs (JSON)
-          alerts.log                                            the alerts of the IDS
-          ids.out monitor.out                                   console output of the two programs
-  run/    ids.pid monitor.pid                                    how `stop` and `status` find them
+  logs/    cb.log ptp.log srp.log tsn_errors.log notice.log ...  Zeek's logs (JSON)
+           alerts.log                                           the alerts of the IDS
+           ids.out monitor.out web.out                          console output of the programs
+  run/     ids.pid monitor.pid web.pid                          how `stop` and `status` find them
+  control/ state.json control.json                              the channel between the IDS and the web interface
 ```
 
 1. Build once: `./build.sh`
@@ -117,21 +118,22 @@ checks and stops both. Everything it creates lives in one directory, `$TSNZEEK_D
 3. Start (asks for your `sudo` password: capturing needs root; `sudo setcap cap_net_raw,cap_net_admin=eip /opt/zeek/bin/zeek` once avoids it, and then the logs belong to you instead of root):
 
    ```sh
-   deploy/headless.sh start -i eth0 [-d ~/tsnzeek] [-c my-thresholds.json]
+   deploy/headless.sh start -i eth0 [-d ~/tsnzeek] [-c my-thresholds.json] [-w [-p 8000]]
    ```
 
-   `-c` gives the IDS thresholds (the keys of `Config` in `ids/config.py`; without it `/etc/tsnzeek/ids.json` if it
+   `-w` also starts the [web interface](web/README.md) on <http://127.0.0.1:8000/> (`-p` for another port; needs Django:
+   `.venv/bin/pip install -r web/requirements.txt`, once). `-c` gives the IDS thresholds (the keys of `Config` in `ids/config.py`; without it `/etc/tsnzeek/ids.json` if it
    exists, else the defaults). The IDS starts first and waits for the monitor.
 4. Check and watch:
 
    ```sh
-   deploy/headless.sh status                                    # both "running"
+   deploy/headless.sh status                                    # IDS, Monitor (and Web) "running"
    cat ~/tsnzeek/logs/ids.out                                    # "Connected to Zeek"
    tail -f ~/tsnzeek/logs/{cb,ptp,srp}.log                       # one JSON line per message
    tail -f ~/tsnzeek/logs/alerts.log ~/tsnzeek/logs/notice.log   # the alerts
    ```
 
-5. Stop both (SIGTERM, so Zeek closes its logs; SIGKILL after 10 s if one hangs):
+5. Stop everything that was started (SIGTERM, so Zeek closes its logs; SIGKILL after 10 s if one hangs):
 
    ```sh
    deploy/headless.sh stop

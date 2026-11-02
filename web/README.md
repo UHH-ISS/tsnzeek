@@ -20,7 +20,7 @@ Changes reach the IDS within half a second, without a restart, and stay across r
 2. **Start the IDS and the monitor** so that there is something to show, with the control directory switched on:
    - `deploy/headless.sh start -i <interface>` (the control directory is `~/tsnzeek/control`), or
    - the systemd services (`/var/lib/tsnzeek`), see [`deploy/`](../deploy/README.md).
-3. **Start the web interface** and tell it where the files are:
+3. **Start the web interface.** The quickest ways: `deploy/headless.sh start -i <interface> -w` starts it with the monitor and the IDS, and `sudo deploy/install.sh --with-web` makes it a service. By hand, and telling it where the files are:
 
    ```sh
    .venv/bin/python web/manage.py runserver 127.0.0.1:8000
@@ -41,8 +41,9 @@ Changes reach the IDS within half a second, without a restart, and stay across r
 ## Permissions with the services
 
 The IDS service writes `/var/lib/tsnzeek/state.json` as user `tsnzeek`, and the web interface has to replace
-`control.json` in that directory. Run the web interface as `tsnzeek` (`sudo -u tsnzeek ...`) or add your user to its group
-and make the directory group-writable (`sudo chmod g+ws /var/lib/tsnzeek`). The logs in `/var/log/tsnzeek` are only read.
+`control.json` in that directory. `tsnzeek-web.service` runs as `tsnzeek` too, so this works. Started by hand, run it as that user
+(`sudo -u tsnzeek ...`) or make the directory group-writable for yours (`sudo chmod g+ws /var/lib/tsnzeek`). The logs in
+`/var/log/tsnzeek` are only read.
 
 ## The API
 
