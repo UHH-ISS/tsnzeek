@@ -14,270 +14,246 @@ module PTP;
 
 import spicy;
 
-# PTP Frame - Dependend on the messageType value, the message type is determined
-# Every MessageType contains a messageHeader and messageField (e.g. announceField)
+# PTP frame: the message type is the low nibble of the first octet. The octet is only inspected here;
+# every message unit parses its own header, so transportSpecific/majorSdoId stays visible to Zeek.
 
+# Entry point for PTP directly over Ethernet (ethertype 0x88F7).
 public type PTPFrame = unit {
-    messageType_transportSpecific: uint8 &convert=MessageType($$ & 0x0F);
-    switch (self.messageType_transportSpecific) {
-		MessageType::Sync                       -> syncMessage:               SyncMessage;
-		MessageType::Delay_Req                  -> delayReqMessage:           DelayReqMessage;
-        MessageType::Pdelay_Req                 -> pdelayReqMessage:          PdelayReqMessage;
-		MessageType::Pdelay_Resp                -> pdelayRespMessage:         PdelayRespMessage;
-		MessageType::Follow_Up                  -> followUpMessage:           FollowUpMessage;
-		MessageType::Delay_Resp                 -> delayRespMessage:          DelayRespMessage;
-		MessageType::Pdelay_Resp_Follow_Up      -> pdelayRespFollowUpMessage: PdelayRespFollowUpMessage;
-		MessageType::Announce                   -> announceMessage:           AnnounceMessage;
-		MessageType::Signaling                  -> signalingMessage:          SignalingMessage;
-		MessageType::Management                 -> managementMessage:         ManagementMessage;
-		* -> void;
-    };
-	on %init { print "PTP frame recieved"; }
-    on %error { print "Error PTP frame"; print self; }
-    on %done {print self; print "Done";}
-
+	body: PTPBody(False);
 };
 
+# Entry point for PTP over UDP (ports 319 and 320). The units are the same; the flag only lets the
+# event glue tell the Ethernet (packet) context from the UDP (connection) context.
+public type PTPUDPFrame = unit {
+	body: PTPBody(True);
+};
 
-type AnnounceMessage = unit {
-    messageHeader: MessageHeader;
-    announceField: AnnounceField;
-    on %error { print "Error AnnounceMessage"; }
+# The message type is the low nibble of the first octet. The octet is only inspected here;
+# every message unit parses its own header, so transportSpecific/majorSdoId stays visible to Zeek.
+public type PTPBody = unit(udp: bool) {
+	var isUdp: bool = udp;
+	var messageType: uint64;
+	var declaredLength: uint64;
+	var actualLength: uint64;
+
+	# Peek at the first four octets (type and messageLength) without consuming them.
+	: bytes &size=4 &parse-at=self.input() {
+		self.messageType = *$$.at(0) & 0x0F;
+		self.declaredLength = (cast<uint64>(*$$.at(2)) << 8) | cast<uint64>(*$$.at(3));
+	}
+
+	switch ( self.messageType ) {
+		0x0 -> syncMessage:               SyncMessage(udp);
+		0x1 -> delayReqMessage:           DelayReqMessage(udp);
+		0x2 -> pdelayReqMessage:          PdelayReqMessage(udp);
+		0x3 -> pdelayRespMessage:         PdelayRespMessage(udp);
+		0x8 -> followUpMessage:           FollowUpMessage(udp);
+		0x9 -> delayRespMessage:          DelayRespMessage(udp);
+		0xA -> pdelayRespFollowUpMessage: PdelayRespFollowUpMessage(udp);
+		0xB -> announceMessage:           AnnounceMessage(udp);
+		0xC -> signalingMessage:          SignalingMessage(udp);
+		0xD -> managementMessage:         ManagementMessage(udp);
+		*   -> unknownMessage:            UnknownMessage(udp);
+	};
+
+	# Suffix TLVs and Ethernet padding; the total size lets the scripts compare it with messageLength.
+	: bytes &eod {
+		self.actualLength = self.offset() + |$$|;
+	}
+};
+
+# Reserved message types (0x4-0x7, 0xE, 0xF); surfaced so that they can be reported.
+type UnknownMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageType: uint8 &convert=($$ & 0x0F);
+	: bytes &eod;
+};
+
+type AnnounceMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader: MessageHeader;
+	announceField: AnnounceField;
 };
 
 type AnnounceField = unit {
-    originTimestamp: Timestamp;
-    currentUtcOffset: int16;
-    reserved: int8;
-    grandmasterPriority1: uint8;
-    grandmasterClockQuality: ClockQuality;
-    grandmasterPriority2: uint8;
-    grandmasterIdentity: uint8[8];
-    stepsRemoved: uint16;
-    timeSource: uint8;
-    on %error { print "Error AnnounceField"; }
+	originTimestamp:          Timestamp;
+	currentUtcOffset:         int16;
+	reserved:                 int8;
+	grandmasterPriority1:     uint8;
+	grandmasterClockQuality:  ClockQuality;
+	grandmasterPriority2:     uint8;
+	grandmasterIdentity:      bytes &size=8;
+	stepsRemoved:             uint16;
+	timeSource:               uint8;
 };
 
-type SyncMessage = unit {
-    messageHeader: MessageHeader;
-    syncField: SyncField;
-    on %error { print "Error SyncMessage"; }
+type SyncMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader: MessageHeader;
+	syncField:     SyncField;
 };
 
 type SyncField = unit {
-    originTimestamp: Timestamp;
-    on %error { print "Error SyncField"; }
+	originTimestamp: Timestamp;
 };
 
-type DelayReqMessage = unit {
-    messageHeader: MessageHeader;
-    delayReqField: DelayReqField;
-    on %error { print "Error DelayReqMessage"; }
+type DelayReqMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader: MessageHeader;
+	delayReqField: DelayReqField;
 };
 
 type DelayReqField = unit {
-    originTimestamp: Timestamp;
-    on %error { print "Error DelayReqField"; }
+	originTimestamp: Timestamp;
 };
 
-
-type FollowUpMessage = unit {
-    messageHeader: MessageHeader;
-    followUpField: FollowUpField;
-    on %error { print "Error FollowUpMessage"; }
+type FollowUpMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader: MessageHeader;
+	followUpField: FollowUpField;
 };
 
 type FollowUpField = unit {
-    preciseOriginTimestamp: Timestamp;
-    on %error { print "Error FollowUpField"; }
+	preciseOriginTimestamp: Timestamp;
 };
 
-type DelayRespMessage = unit {
-    messageHeader: MessageHeader;
-    delayRespField: DelayRespField;
-    on %error { print "Error DelayRespMessage"; }
+type DelayRespMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader:  MessageHeader;
+	delayRespField: DelayRespField;
 };
 
 type DelayRespField = unit {
-    receiveTimestamp: Timestamp;
-    requestingPortIdentity: PortIdentity;
-    on %error { print "Error DelayRespField"; }
+	receiveTimestamp:        Timestamp;
+	requestingPortIdentity:  PortIdentity;
 };
 
-type PdelayReqMessage = unit {
-    messageHeader: MessageHeader;
-    pdelayReqField: PdelayReqField;
-    on %error { print "Error PdelayReqMessage"; }
+type PdelayReqMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader:  MessageHeader;
+	pdelayReqField: PdelayReqField;
 };
 
 type PdelayReqField = unit {
-    originTimestamp: Timestamp;
-    reserved: int8[10];
-    on %error { print "Error PdelayReqField"; }
+	originTimestamp:  Timestamp;
+	reserved:         bytes &size=10;
 };
 
-
-type PdelayRespMessage = unit {
-    messageHeader: MessageHeader;
-    pdelayRespField: PdelayRespField;
-    on %error { print "Error PdelayRespMessage"; }
+type PdelayRespMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader:   MessageHeader;
+	pdelayRespField: PdelayRespField;
 };
 
 type PdelayRespField = unit {
-    requestReceiptTimestamp: Timestamp;
-    requestingPortIdentity: PortIdentity;
-    on %error { print "Error PdelayRespField"; }
+	requestReceiptTimestamp:  Timestamp;
+	requestingPortIdentity:   PortIdentity;
 };
 
-type PdelayRespFollowUpMessage = unit {
-    messageHeader: MessageHeader;
-    pdelayRespFollowUpField: PdelayRespFollowUpField;
-    on %error { print "Error PdelayRespFollowUpMessage"; }
+type PdelayRespFollowUpMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader:           MessageHeader;
+	pdelayRespFollowUpField: PdelayRespFollowUpField;
 };
 
 type PdelayRespFollowUpField = unit {
-    responseOriginTimestamp: Timestamp;
-    requestingPortIdentity: PortIdentity;
-    on %error { print "Error PdelayRespFollowUpField"; }
+	responseOriginTimestamp:  Timestamp;
+	requestingPortIdentity:   PortIdentity;
 };
 
-type SignalingMessage = unit {
-    messageHeader: MessageHeader;
-    signalingField: SignalingField;
-    on %error { print "Error SignalingMessage"; }
+type SignalingMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader:  MessageHeader;
+	signalingField: SignalingField;
 };
 
 type SignalingField = unit {
-    targetPortIdentity: PortIdentity;
-    tlv: TLV;
-    on %error { print "Error SignalingField"; }
+	targetPortIdentity:  PortIdentity;
+	tlv:                 TLV;
 };
 
-type ManagementMessage = unit {
-    messageHeader: MessageHeader;
-    managementField: ManagementField;
-    on %error { print "Error ManagementMessage"; }
+type ManagementMessage = unit(udp: bool) {
+	var isUdp: bool = udp;
+	messageHeader:   MessageHeader;
+	managementField: ManagementField;
 };
 
 type ManagementField = unit {
-    targetPortIdentity: PortIdentity;
-    startingBoundaryHops: uint8;
-    boundaryHops: uint8;
-    actionField: uint8;
-    reserverd: uint8;
-    managementTLV: ManagementTLV;
-    on %error { print "Error ManagementField"; }
+	targetPortIdentity:    PortIdentity;
+	startingBoundaryHops:  uint8;
+	boundaryHops:          uint8;
+	actionField:           uint8;
+	reserved:              uint8;
+	managementTLV:         ManagementTLV;
 };
 
+# Common 34-octet header (IEEE 1588-2019 13.3). Octet 0 is majorSdoId in 1588-2019 and
+# transportSpecific in IEEE 802.1AS-2011 (0x1 for gPTP).
 type MessageHeader = unit {
-	version: Version;
-	messageLength: uint16;
-	domainNumber: uint8;
-	minorSdoId: uint8;
-	flags : Flags;
-	correctionField: int64;
-	messageTypeSpecific: uint32;
-    sourcePortIdentity: PortIdentity;
-    sequenceId: uint16;
-    controlField: uint8;
-    logMessageInterval: int8;
-    on %error { print "Error MessageHeader"; }
+	sdoAndType: bitfield(8) {
+		messageType:        0..3;
+		transportSpecific:  4..7;
+	} &bit-order=spicy::BitOrder::LSB0;
+	version: bitfield(8) {
+		versionPTP:       0..3;
+		minorVersionPTP:  4..7;
+	} &bit-order=spicy::BitOrder::LSB0;
+	messageLength:        uint16;
+	domainNumber:         uint8;
+	minorSdoId:           uint8;
+	flags: bitfield(16) {
+		alternateMasterFlag:       0;
+		twoStepFlag:               1;
+		unicastFlag:               2;
+		reserved_3:                3;
+		reserved_4:                4;
+		ptp_profile_specific_1:    5;
+		ptp_profile_specific_2:    6;
+		reserved_7:                7;
+		leap61:                    8;
+		leap59:                    9;
+		currentUtcOffsetValid:     10;
+		ptpTimescale:              11;
+		timeTraceable:             12;
+		frequencyTraceable:        13;
+		synchronizationUncertain:  14;
+		reserved_15:               15;
+	} &bit-order=spicy::BitOrder::LSB0;
+	correctionField:      int64;
+	messageTypeSpecific:  uint32;
+	sourcePortIdentity:   PortIdentity;
+	sequenceId:           uint16;
+	controlField:         uint8;
+	logMessageInterval:   int8;
 };
-
-
-type MessageType_TransportSpecific = unit {
-    sequence: bitfield(8) {
-            messageType: 0..3;
-            transportSpecific: 4..7;
-    } &bit-order = spicy::BitOrder::LSB0;
-    on %error { print "Error MessageType_TransportSpecific"; }
-};
-
-
-type MessageType = enum {
-    Sync = 0x0,
-    Delay_Req = 0x1,
-    Pdelay_Req = 0x2,
-    Pdelay_Resp = 0x3,
-    Reserved_0x4 = 0x4,
-    Reserved_0x5 = 0x5,
-    Reserved_0x6 = 0x6,
-    Reserved_0x7 = 0x7,
-    Follow_Up = 0x8,
-    Delay_Resp = 0x9,
-    Pdelay_Resp_Follow_Up = 0xA,
-	Announce = 0xB,
-	Signaling = 0xC,
-    Management = 0xD,
-    Reserved_0xE = 0xE,
-    Reserved_0xF = 0xF
-};
-
-
-
-type Version = unit {
-    sequence: bitfield(8) {
-            versionPTP: 0..3;
-            minorVersionPTP: 4..7;
-    } &bit-order = spicy::BitOrder::LSB0;
-    on %error { print "Error Version"; }
-};
-
-type Flags = unit {
-    sequence: bitfield(16) {
-        alternateMasterFlag: 0;
-        twoStepFlag: 1;
-        unicastFlag: 2;
-        reserved_3: 3;
-        reserved_4: 4;
-        ptp_profile_specific_1: 5;
-        ptp_profile_specific_2: 6;
-        reserved_7: 7;
-        leap61: 8;
-        leap59: 9;
-        currentUtcOffsetValid: 10;
-        ptpTimescale: 11;
-        timeTraceable: 12;
-        frequencyTraceable: 13;
-        synchronizationUncertain: 14;
-        reserved_15: 15;
-    } &bit-order = spicy::BitOrder::LSB0;
-    on %error { print "Error Flags"; }
-};
-
 
 type PortIdentity = unit {
-    clockIdentity: uint8[8];
-    portNumber: uint16;
-    on %error { print "Error PortIdentity"; }
+	clockIdentity:  bytes &size=8;
+	portNumber:     uint16;
 };
 
-
 type Timestamp = unit {
-	secondsMSB: uint16;
-	secondsLSB: uint32;
-	nanoSeconds: uint32;
-    on %error { print "Error Timestamp"; }
+	secondsMSB:   uint16;
+	secondsLSB:   uint32;
+	nanoSeconds:  uint32;
 };
 
 type ClockQuality = unit {
-	clockClass: uint8;
-    clockAccuracy: uint8;
-	offsetScaledLogVariance: uint16;
-    on %error { print "Error ClockQuality"; }
+	clockClass:               uint8;
+	clockAccuracy:            uint8;
+	offsetScaledLogVariance:  uint16;
 };
 
 type TLV = unit {
-	tlvType: uint16;
-	lengthField: uint16;
-	valueField: uint8[self.lengthField];
-    on %error { print "Error TLV"; }
+	tlvType:      uint16;
+	lengthField:  uint16;
+	valueField:   bytes &size=self.lengthField;
 };
 
+# lengthField covers managementId (2 octets) plus dataField.
 type ManagementTLV = unit {
-    tlvType: uint16;
-    lengthField: uint16;
-    managementId: uint16;
-    dataField: uint8[self.lengthField];
-    on %error { print "Error ManagementTLV"; }
+	tlvType:       uint16;
+	lengthField:   uint16 &requires=($$ >= 2);
+	managementId:  uint16;
+	dataField:     bytes &size=self.lengthField - 2;
 };
