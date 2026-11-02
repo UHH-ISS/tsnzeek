@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Run Zeek over every tests/pcaps/*.pcap and compare the resulting logs with tests/expected/.
 #
 #   tests/run.sh            compare

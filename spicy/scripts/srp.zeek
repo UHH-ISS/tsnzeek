@@ -5,6 +5,7 @@
 # IEEE 802.1Qcc (enhanced SRP): log and forward Talker/Listener Enhanced First Value messages.
 #
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Released under GNU Public License (GPL)
 # -----------------------------------------------------------
 

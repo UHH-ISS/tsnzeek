@@ -130,3 +130,8 @@ dmypy.json
 
 # The expected output of the tests is not a log file to ignore
 !tests/expected/**/*.log
+
+# Claude Code
+.claude/
+CLAUDE.md
+CLAUDE.local.md

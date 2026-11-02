@@ -1,3 +1,5 @@
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Unit tests of the parts of the user-space hub that need no raw socket."""
 import os
 import socket

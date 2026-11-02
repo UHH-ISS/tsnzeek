@@ -1,3 +1,5 @@
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Messages and a test case shared by the detector tests: hand-made records like those of cb.log and srp.log."""
 import os
 import sys

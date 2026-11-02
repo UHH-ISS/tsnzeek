@@ -12,6 +12,7 @@
 # (The timing attack 2 of the original script was never implemented there.)
 #
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Released under GNU Public License (GPL)
 # -----------------------------------------------------------
 

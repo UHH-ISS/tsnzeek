@@ -1,3 +1,5 @@
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Unit tests of the engine and the configuration."""
 import unittest
 

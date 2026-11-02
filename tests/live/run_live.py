@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Live tests in Mininet: Zeek and the IDS run on `mon`, frames come from h1 and the attacker.
 
     ./build.sh                                  # once, as yourself: the run must not create root-owned files in build/

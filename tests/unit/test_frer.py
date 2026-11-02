@@ -1,3 +1,5 @@
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Unit tests of the FRER rules on hand-made messages (no Zeek, no Broker needed)."""
 import unittest
 
