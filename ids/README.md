@@ -37,7 +37,7 @@ Every rule has a name that says what it detects; the same name appears in alerts
 the [live demo](../tests/live/README.md) (where one exists). The last column is the number in the original
 `attack-detection.py` and the paper.
 
-| File | Rule | Detects | Main thresholds (`Config`) | Original |
+| File | Rule (number) | Detects | Main thresholds (`Config`) | Original |
 | --- | --- | --- | --- | --- |
 | `frer.py` | `frer_excess_copies` | more copies of a frame than member streams | `nr_of_member_streams` | attack1 |
 | | `frer_out_of_order` | sequence numbers out of order, accepted or discarded by the sequence recovery | `frer_history_size`, `recovery_reset_time` | attack3 |
