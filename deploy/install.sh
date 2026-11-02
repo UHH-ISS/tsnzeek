@@ -11,13 +11,14 @@ set -euo pipefail
 
 HOME_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZEEK_PREFIX="${ZEEK_PREFIX:-/opt/zeek}"
-UNITS=(tsnzeek-zeek.service tsnzeek-ids.service tsnzeek.target)
+UNITS=(tsnzeek-monitor.service tsnzeek-ids.service tsnzeek.target)
+OLD_UNITS=(tsnzeek-zeek.service)      # the monitor was called this once
 
 [[ $EUID -eq 0 ]] || { echo "run as root: sudo $0 $*" >&2; exit 1; }
 
 if [[ "${1:-}" == "--uninstall" ]]; then
 	systemctl disable --now tsnzeek.target 2>/dev/null || true
-	for u in "${UNITS[@]}"; do rm -f "/etc/systemd/system/$u"; done
+	for u in "${UNITS[@]}" "${OLD_UNITS[@]}"; do rm -f "/etc/systemd/system/$u"; done
 	rm -f /etc/logrotate.d/tsnzeek
 	systemctl daemon-reload
 	echo "removed; /etc/tsnzeek and /var/log/tsnzeek are kept"
@@ -27,6 +28,10 @@ fi
 [[ -f "$HOME_DIR/build/spicy/tsn.hlto" ]] || { echo "build first: $HOME_DIR/build.sh" >&2; exit 1; }
 [[ -x "$ZEEK_PREFIX/bin/zeek" ]] || { echo "no Zeek in $ZEEK_PREFIX (set ZEEK_PREFIX)" >&2; exit 1; }
 
+for u in "${OLD_UNITS[@]}"; do
+	[[ -f "/etc/systemd/system/$u" ]] || continue
+	systemctl disable --now "$u" 2>/dev/null || true; rm -f "/etc/systemd/system/$u"
+done
 id tsnzeek >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin tsnzeek
 install -d -o tsnzeek -g tsnzeek -m 0750 /var/log/tsnzeek
 install -d -m 0755 /etc/tsnzeek

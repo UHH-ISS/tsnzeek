@@ -1,11 +1,11 @@
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
-# The Python IDS. It waits for Zeek without a time limit and keeps running when Zeek restarts.
+# The IDS (Python). It waits for the monitor without a time limit and keeps running when the monitor restarts.
 # @TSNZEEK_HOME@ and @ZEEK_PREFIX@ are filled in by deploy/install.sh.
 [Unit]
-Description=TSNZeek: intrusion detection for the messages of Zeek
+Description=TSNZeek IDS: intrusion detection on the messages of the monitor
 Documentation=file:@TSNZEEK_HOME@/ids/README.md
-After=tsnzeek-zeek.service
-Wants=tsnzeek-zeek.service
+After=tsnzeek-monitor.service
+Wants=tsnzeek-monitor.service
 PartOf=tsnzeek.target
 
 [Service]

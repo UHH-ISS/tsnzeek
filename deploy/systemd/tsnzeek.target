@@ -1,7 +1,7 @@
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 [Unit]
-Description=TSNZeek (Zeek and the IDS)
-Wants=tsnzeek-zeek.service tsnzeek-ids.service
+Description=TSNZeek (monitor and IDS)
+Wants=tsnzeek-monitor.service tsnzeek-ids.service
 
 [Install]
 WantedBy=multi-user.target
