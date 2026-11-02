@@ -3,9 +3,10 @@
 ## Unreleased
 
 ### Service
-- Optional systemd services in `deploy/` (Zeek and the IDS as user `tsnzeek`, `install.sh`, logs in `/var/log/tsnzeek`, daily Zeek log rotation, logrotate for the alert log); TSNZeek still runs without them.
+- Optional systemd services in `deploy/` (monitor and IDS as user `tsnzeek`, `install.sh`, logs in `/var/log/tsnzeek`, daily Zeek log rotation, logrotate for the alert log); TSNZeek still runs without them.
 - IDS: `--service` (waits for Zeek without a time limit and survives Zeek restarts), `--alert-log`, and the config file is looked up in `--config`, `$TSNZEEK_CONFIG`, `/etc/tsnzeek/ids.json`, then the defaults.
-- `deploy/headless.sh start|stop|status`: Zeek and the IDS in the background without a service, with pid files so that `stop` ends both.
+- `deploy/headless.sh start|stop|status`: the monitor (Zeek) and the IDS in the background without a service. Everything lives in one directory, `$TSNZEEK_DIR` (default `~/tsnzeek`): `logs/` and `run/` (pid files), so that `stop` ends both.
+- The Zeek unit is called `tsnzeek-monitor.service` (monitor and IDS are the two parts); `install.sh` removes an old `tsnzeek-zeek.service`.
 - `TSN::broker_listen_addr` and `TSN::broker_listen_port` replace the fixed `127.0.0.1:9999`.
 
 ### Documentation
