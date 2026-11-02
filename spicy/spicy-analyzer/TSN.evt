@@ -26,25 +26,87 @@ packet analyzer spicy::SRP:
 packet analyzer spicy::PTP:
 	parse with PTP::PTPFrame;
 
+# PTP over UDP/IPv4 and UDP/IPv6 (IEEE 1588 Annex C and D): event messages on 319, general messages on 320.
+protocol analyzer spicy::PTP_UDP over UDP:
+	parse with PTP::PTPUDPFrame,
+	port 319/udp,
+	port 320/udp;
+
 import PTP;
 import SRP;
 import FRER;
-import Zeek_TSN;
 import zeek;
 
-on SRP::TalkerEnhanced_FirstValue    -> event TSN::talkerEnhanced_FirstValueMsg($packet, Zeek_TSN::makeTalkerEnhanced_FirstValue(self));
+export SRP::Item;
+export SRP::StreamID;
+export SRP::StreamRank;
+export SRP::InterfaceID;
+export SRP::DataFrameItem;
+export SRP::IEEE802MacAddresses;
+export SRP::IEEE802VlanTag;
+export SRP::IPv4Tuple;
+export SRP::IPv6Tuple;
+export SRP::TrafficSpecification;
+export SRP::TSpecTimeAware;
+export SRP::UserToNetworkRequirements;
+export SRP::InterfaceCapabilities;
+export SRP::StatusItem;
+export SRP::StatusInfo;
+export SRP::AccumulatedLatency;
+export SRP::ConfigItem;
+export SRP::InterfaceIDValue;
+export SRP::TimeAwareOffset;
+export SRP::StatusFields;
+export SRP::TalkerEnhanced_FirstValue;
+export SRP::ListenerEnhanced_FirstValue;
+export SRP::UnknownMessage;
 
-on SRP::ListenerEnhanced_FirstValue  -> event TSN::listenerEnhanced_FirstValueMsg($packet, Zeek_TSN::makeListenerEnhanced_FirstValue(self));
+on SRP::TalkerEnhanced_FirstValue    -> event TSN::talkerEnhanced_FirstValueMsg($packet, self);
+on SRP::ListenerEnhanced_FirstValue  -> event TSN::listenerEnhanced_FirstValueMsg($packet, self);
+on SRP::UnknownMessage               -> event TSN::srp_unknownMsg($packet, self);
 
-on FRER::CBFrame                     -> event TSN::cb_message($packet, Zeek_TSN::makeCBFrame(self), zeek::network_time());
+export FRER::CBFrame;
 
-on PTP::AnnounceMessage              -> event TSN::ptp_announceMsg($packet, Zeek_TSN::makePTPAnnounceMessage(self));
-on PTP::SyncMessage                  -> event TSN::ptp_syncMsg($packet, Zeek_TSN::makePTPSyncMessage(self));
-on PTP::DelayReqMessage              -> event TSN::ptp_delayReqMsg($packet, Zeek_TSN::makePTPDelayReqMessage(self));
-on PTP::FollowUpMessage              -> event TSN::ptp_followUpMsg($packet, Zeek_TSN::makePTPFollowUpMessage(self));
-on PTP::DelayRespMessage             -> event TSN::ptp_delayRespMsg($packet, Zeek_TSN::makePTPDelayRespMessage(self));
-on PTP::PdelayReqMessage             -> event TSN::ptp_pdelayReqMsg($packet, Zeek_TSN::makePTPPdelayReqMessage(self));
-on PTP::PdelayRespMessage            -> event TSN::ptp_pdelayRespMsg($packet, Zeek_TSN::makePTPPdelayRespMessage(self));
-on PTP::PdelayRespFollowUpMessage    -> event TSN::ptp_pdelayRespFollowUpMsg($packet, Zeek_TSN::makePTPPdelayRespFollowUpMessage(self));
-on PTP::SignalingMessage             -> event TSN::ptp_signalingMsg($packet, Zeek_TSN::makePTPSignalingMessage(self));
-on PTP::ManagementMessage            -> event TSN::ptp_managementMsg($packet, Zeek_TSN::makeManagementMessage(self));
+on FRER::CBFrame                     -> event TSN::cb_message($packet, self);
+
+on FRER::CBFrame::%error(msg: string) -> event TSN::parse_error($packet, "FRER", msg);
+on SRP::SRPFrame::%error(msg: string) -> event TSN::parse_error($packet, "SRP", msg);
+on PTP::PTPFrame::%error(msg: string) -> event TSN::parse_error($packet, "PTP", msg);
+
+export PTP::MessageHeader;
+export PTP::PortIdentity;
+export PTP::Timestamp;
+export PTP::ClockQuality;
+export PTP::TLV;
+export PTP::ManagementTLV;
+export PTP::AnnounceMessage;
+export PTP::SyncMessage;
+export PTP::DelayReqMessage;
+export PTP::FollowUpMessage;
+export PTP::DelayRespMessage;
+export PTP::PdelayReqMessage;
+export PTP::PdelayRespMessage;
+export PTP::PdelayRespFollowUpMessage;
+export PTP::SignalingMessage;
+export PTP::ManagementMessage;
+export PTP::UnknownMessage;
+
+on PTP::AnnounceMessage if ( ! self.isUdp )              -> event TSN::ptp_announceMsg($packet, self);
+on PTP::SyncMessage if ( ! self.isUdp )                  -> event TSN::ptp_syncMsg($packet, self);
+on PTP::DelayReqMessage if ( ! self.isUdp )              -> event TSN::ptp_delayReqMsg($packet, self);
+on PTP::FollowUpMessage if ( ! self.isUdp )              -> event TSN::ptp_followUpMsg($packet, self);
+on PTP::DelayRespMessage if ( ! self.isUdp )             -> event TSN::ptp_delayRespMsg($packet, self);
+on PTP::PdelayReqMessage if ( ! self.isUdp )             -> event TSN::ptp_pdelayReqMsg($packet, self);
+on PTP::PdelayRespMessage if ( ! self.isUdp )            -> event TSN::ptp_pdelayRespMsg($packet, self);
+on PTP::PdelayRespFollowUpMessage if ( ! self.isUdp )    -> event TSN::ptp_pdelayRespFollowUpMsg($packet, self);
+on PTP::SignalingMessage if ( ! self.isUdp )             -> event TSN::ptp_signalingMsg($packet, self);
+on PTP::ManagementMessage if ( ! self.isUdp )            -> event TSN::ptp_managementMsg($packet, self);
+on PTP::UnknownMessage if ( ! self.isUdp )               -> event TSN::ptp_unknownMsg($packet, self);
+on PTP::PTPBody if ( ! self.isUdp )    -> event TSN::ptp_frame($packet, self.messageType, self.declaredLength, self.actualLength);
+
+# PTP over UDP: one event per datagram; the scripts dispatch on the message that was parsed.
+export PTP::PTPUDPFrame;
+export PTP::PTPBody;
+
+on PTP::PTPBody if ( self.isUdp )      -> event TSN::ptp_udp_frame($conn, $is_orig, self);
+on PTP::PTPUDPFrame::%error(msg: string) -> event TSN::parse_error_udp($conn, "PTP", msg);
