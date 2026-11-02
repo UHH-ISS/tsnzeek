@@ -1,22 +1,24 @@
 # Scapy
 
-Scapy is used in this project to forge and send SRP and FRER frames.
+Scapy layers to forge and send SRP and FRER frames.
 
-# Startup
+## Files
 
-Scapy sends the frames from the machine it runs on. Ensure that you are on the device that should originate the frames. Start the Scapy scripts like any other python script or start it directly with:
+| File | Purpose |
+| --- | --- |
+| `CB.py`, `SRP.py` | Scapy layers for the FRER redundancy tag and for enhanced SRP; started directly they open an interactive Scapy shell |
+| `frer_sample`, `srp_sample` | frames to paste into that shell |
+| `gptp_packet_sender.py`, `ptpv2_vlan.pcap` | sends the gPTP frames of the pcap, one per Enter |
+| `scapy-attacks.py` | the original attack script, not updated for the new IDS; the `tsn` commands of the [live demo](../tests/live/README.md) replace it |
+
+The tests and the demo build their frames with `tests/gen_pcaps.py`, which uses these layers.
+
+## Usage
+
+Scapy needs root to send. Install it in the project's venv (`python3 -m venv .venv && .venv/bin/pip install scapy`) and start a layer, on the machine or Mininet host that should send the frames (`xterm h1` in the Mininet CLI):
+
 ```sh
-source $HOME/env/bin/activate
-esudo python3 $HOME/scapy/CB.py
-```
-
-# Usage example
-
-Ensure that mininet is up and running. SSH into one of the hosts, load the environment and start Scapy:
-```sh
-ssh 10.0.0.2
-source $HOME/env/bin/activate
-esudo python3 $HOME/scapy/SRP.py
+sudo .venv/bin/python scapy/SRP.py
 ```
 
 This will start up a Scapy interactive shell. In this shell, you can create frames and send them to other hosts in your network. Scapy can be used to create malformed frames. Therefore there is no mechanism to check if created frames are of valid form.
@@ -26,6 +28,6 @@ All packets are of the structure: `Ether \ Dot1Q \ SRP`. This structure is requi
 
 Type `pkt.show()` to inspect one of the created packets. Replace `pkt` with the name of the packet you want to inspect. This will show the structure and the values stored inside the packet. Some of the displayed fields will be uninitialized. To show the final assembled packet use `pkt.show2()`. To get a hex view on the packet use `hexdump(pkt)` and for a raw byte view `raw(pkt)`.
 
-To send a frame, only the definition of a packet is required. Send the packet with `sendp(pkt, iface="h2-eth0")`.
+To send a frame, only the definition of a packet is required. Send the packet with `sendp(pkt, iface="h1-eth0")`.
 
 To create your own SRP frame, fill the `tlvlist` parameter of `SRP()` with a list of Type Length Value (tlv) groups. The data does not have to be structured like in the sample.
