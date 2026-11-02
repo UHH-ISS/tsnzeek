@@ -85,47 +85,38 @@ logs of an earlier run, without Zeek or Broker: `python3 -m ids --replay cb.log 
 
 ## Headless (no terminal window, no service)
 
-Zeek and the IDS in the background of a server or an SSH session, started by hand. Nothing is installed; stop them
-when you are done. (For something that starts at boot, use the [systemd services](deploy/README.md).)
+Zeek and the IDS called directly and kept running in the background of a server or an SSH session. Nothing is installed.
+(For something that starts at boot, use the [systemd services](deploy/README.md).) `deploy/headless.sh` starts, checks and
+stops both:
 
 1. Build once: `./build.sh`
-2. Pick the interface (`ip -br link`) and a directory for the logs:
+2. Find the interface to monitor: `ip -br link`
+3. Start (asks for your `sudo` password: capturing needs root; `sudo setcap cap_net_raw,cap_net_admin=eip /opt/zeek/bin/zeek` once avoids it):
 
    ```sh
-   IFACE=eth0
-   LOGS=$HOME/tsnzeek-logs && mkdir -p "$LOGS"
+   deploy/headless.sh start -i eth0 -d ~/tsnzeek-logs [-c my-thresholds.json]
    ```
 
-3. Start the IDS first. It waits for Zeek, so the order does not matter for correctness, but it must be up before the
-   traffic you want checked. The alerts go to `alerts.log` (and the console output to `ids.out`):
+   `-d` is where everything goes (default `~/tsnzeek-logs`), `-c` the IDS thresholds (the keys of `Config` in `ids/config.py`;
+   without it `/etc/tsnzeek/ids.json` if it exists, else the defaults). The IDS starts first and waits for Zeek.
+4. Check and watch:
 
    ```sh
-   PYTHONPATH=/opt/zeek/lib/zeek/python setsid nohup python3 -m ids --service \
-       --alert-log "$LOGS/alerts.log" >"$LOGS/ids.out" 2>&1 &
-   echo $! >"$LOGS/ids.pid"
+   deploy/headless.sh status -d ~/tsnzeek-logs                  # both "running"
+   cat ~/tsnzeek-logs/ids.out                                    # "Connected to Zeek"
+   tail -f ~/tsnzeek-logs/cb.log ~/tsnzeek-logs/ptp.log ~/tsnzeek-logs/srp.log   # one JSON line per message
+   tail -f ~/tsnzeek-logs/alerts.log ~/tsnzeek-logs/notice.log   # the alerts
    ```
 
-   Add `--config my-thresholds.json` to change thresholds (the keys are the fields of `Config` in `ids/config.py`).
-
-4. Start Zeek. Capturing needs root (or `sudo setcap cap_net_raw,cap_net_admin=eip /opt/zeek/bin/zeek` once, then no `sudo`).
-   It writes its logs into the current directory:
+5. Stop both (SIGTERM, so Zeek closes its logs; SIGKILL after 10 s if one hangs):
 
    ```sh
-   cd "$LOGS" && sudo ZEEK_SPICY_MODULE_PATH="$OLDPWD/build/spicy" setsid nohup /opt/zeek/bin/zeek -C -i "$IFACE" \
-       "$OLDPWD/spicy/scripts" LogAscii::use_json=T TSN::log_flush_interval=1sec >zeek.out 2>&1 &
-   cd -
+   deploy/headless.sh stop -d ~/tsnzeek-logs
    ```
 
-5. Check that both run and watch the traffic:
-
-   ```sh
-   cat "$LOGS/ids.out"                       # "Connected to Zeek"
-   tail -f "$LOGS"/cb.log "$LOGS"/ptp.log "$LOGS"/srp.log   # one JSON line per message
-   tail -f "$LOGS/alerts.log" "$LOGS/notice.log"            # the alerts
-   ```
-
-6. Stop: `kill "$(cat "$LOGS/ids.pid")"; sudo pkill -x zeek` (Zeek finishes the logs on SIGTERM).
-
+The script writes `ids.pid` and `zeek.pid` into the log directory; that is how `stop` and `status` find the processes, so give
+them the same `-d`. By hand, the same is `python3 -m ids --service --alert-log FILE` (with `PYTHONPATH=/opt/zeek/lib/zeek/python`)
+and `zeek -C -i IFACE spicy/scripts LogAscii::use_json=T TSN::log_flush_interval=1sec` started in the log directory.
 `TSN::wait_for_peer` is for pcaps run together with the IDS; a live run does not need it.
 
 ## Testing
