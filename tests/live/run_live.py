@@ -145,7 +145,13 @@ class Monitor:
             time.sleep(0.2)
         else:
             raise RuntimeError(f"Zeek did not start, see {out}/zeek.out")
-        self.ids = self.mon.popen([sys.executable, "-m", "ids", "--config", CONFIG], cwd=ROOT, env=env,
+        # The web interface (web/, started as the user) reads state.json and alerts.log here and writes control.json,
+        # so the directory must be writable for it although this run is root's.
+        self.control = os.path.join(out, "control")
+        os.makedirs(self.control, exist_ok=True)
+        os.chmod(self.control, 0o777)
+        self.ids = self.mon.popen([sys.executable, "-m", "ids", "--config", CONFIG, "--control-dir", self.control,
+                                   "--alert-log", f"{out}/alerts.log"], cwd=ROOT, env=env,
                                   stdout=open(f"{out}/ids.out", "w"), stderr=subprocess.STDOUT)
         time.sleep(1.5)                                    # let the IDS connect and subscribe
 
@@ -346,7 +352,11 @@ def main():
             ptp4l = RealPtp(net, os.path.join(workdir, "cli")) if real else None
             windows = open_windows(net, mon, ptp4l) if demo else []
             print(f"Zeek and the IDS run on mon (output in {workdir}/cli). Send with, e.g.\n"
-                  f"  h1 {PY} {SEND} frer_mixed h1-eth0\nType exit to stop everything.")
+                  f"  h1 {PY} {SEND} frer_mixed h1-eth0\n"
+                  f"Web interface (in another terminal, as yourself, not with sudo):\n"
+                  f"  TSNZEEK_CONTROL_DIR={workdir}/cli/control TSNZEEK_LOG_DIR={workdir}/cli \\\n"
+                  f"      {PY} {os.path.join(ROOT, 'web', 'manage.py')} runserver 127.0.0.1:8000\n"
+                  f"Type exit to stop everything.")
             CLI(net)
             for w in windows:
                 w.terminate()
