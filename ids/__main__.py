@@ -23,6 +23,7 @@ import time
 
 from .engine import Engine
 from .config import Config
+from .control import Control
 from .frer import FrerDetector
 from .ptp import PtpDetector
 from .srp import SrpDetector
@@ -41,12 +42,17 @@ def find_config(path):
     return SYSTEM_CONFIG if os.path.isfile(SYSTEM_CONFIG) else None
 
 
-def build_engine(config_path):
+def load_config(config_path):
     config_path = find_config(config_path)
     config = Config()
     if config_path:
         with open(config_path) as f:
             config = Config.from_dict(json.load(f))
+    return config
+
+
+def build_engine(config_path, config=None):
+    config = config or load_config(config_path)
     return Engine([FrerDetector(config), SrpDetector(config), PtpDetector(config)])
 
 
@@ -92,10 +98,18 @@ def live(args):
     import broker                                       # imported late: replay must work without it
     import broker.zeek
 
+    config = load_config(args.config)
+    engine = build_engine(args.config, config)
+    control_dir = args.control_dir or os.environ.get("TSNZEEK_CONTROL_DIR")
+    control = Control(control_dir, config, engine, {"mode": "service" if args.service else "live"}) if control_dir else None
+    if control:
+        control.poll()
+    last_poll = time.monotonic()
+
     ep = broker.Endpoint()
     sub = ep.make_subscriber("/topic/tsn")
     status = ep.make_status_subscriber(True)
-    ep.peer(args.host, args.port, 1.0)                  # Broker retries every second
+    ep.peer_nosync(args.host, args.port, 1.0)           # does not block while Zeek is down; Broker retries every second
     deadline = None if args.service else time.monotonic() + args.connect_timeout
     connected = False
     while not connected:
@@ -103,13 +117,24 @@ def live(args):
             sys.exit(f"could not connect to Zeek at {args.host}:{args.port}")
         for st in status.poll():                        # errors while Zeek is not up yet are retried by Broker
             connected = connected or (isinstance(st, broker.Status) and st.code() == broker.SC.PeerAdded)
+        if control and time.monotonic() - last_poll >= 0.5:
+            control.poll()
+            last_poll = time.monotonic()
         time.sleep(0.1)
     print("Connected to Zeek", flush=True)
+    control and control.set_connected(True)
 
     def send(name, *a):
         ep.publish("/topic/tsn", broker.zeek.Event(name, *a))
 
-    engine = build_engine(args.config)
+    def handle(kind, msg):
+        if control:
+            control.note_message(kind)
+        alerts = engine.feed(kind, msg)
+        if control:
+            control.note_alerts(alerts)
+        report(alerts, lambda m: send("TSN::raise_notice", m))
+
     if args.offline:
         time.sleep(0.5)                                 # let Zeek see the subscription before it publishes
         send("TSN::ids_ready")
@@ -120,15 +145,22 @@ def live(args):
             for st in status.poll():
                 if isinstance(st, broker.Status) and st.code() in (broker.SC.PeerLost, broker.SC.PeerRemoved):
                     print("Lost Zeek, waiting for it to come back", flush=True)
+                    control and control.set_connected(False)
                 elif isinstance(st, broker.Status) and st.code() == broker.SC.PeerAdded:
                     print("Connected to Zeek", flush=True)
+                    control and control.set_connected(True)
+        if control and time.monotonic() - last_poll >= 0.5:      # a stat() and, now and then, a small file
+            control.poll()
+            last_poll = time.monotonic()
         batch = sub.poll()
         if not batch:
             if args.offline:
                 if time.monotonic() - idle_since > args.idle_exit:
                     break
             else:
-                report(engine.tick(time.time()), lambda m: send("TSN::raise_notice", m))
+                alerts = engine.tick(time.time())
+                control and control.note_alerts(alerts)
+                report(alerts, lambda m: send("TSN::raise_notice", m))
             time.sleep(0.1)
             continue
         idle_since = time.monotonic()
@@ -137,7 +169,7 @@ def live(args):
             if ev.name() != "TSN::ids_message":
                 continue
             kind, payload = ev.args()
-            report(engine.feed(kind, json.loads(payload)), lambda m: send("TSN::raise_notice", m))
+            handle(kind, json.loads(payload))
 
     if args.drain:
         report(engine.tick(engine.now + args.drain), lambda m: send("TSN::raise_notice", m))
@@ -151,6 +183,9 @@ def main():
     ap.add_argument("--config", help="JSON file overriding the thresholds in ids/config.py Config "
                                      "(default: $TSNZEEK_CONFIG, else /etc/tsnzeek/ids.json if it exists, else the defaults)")
     ap.add_argument("--alert-log", metavar="FILE", help="also append the alerts to this file (default: $TSNZEEK_ALERT_LOG, else none)")
+    ap.add_argument("--control-dir", metavar="DIR",
+                    help="directory of the control channel to the web interface: the IDS writes state.json (rules, active "
+                         "configuration, streams, rates) and applies control.json at run time (default: $TSNZEEK_CONTROL_DIR, else none)")
     ap.add_argument("--service", action="store_true",
                     help="run as a service: wait for Zeek without a time limit and keep running when Zeek restarts")
     ap.add_argument("--host", default="127.0.0.1")

@@ -51,6 +51,16 @@ class SrpDetector(Detector):
     def on_tick(self, now):
         return self._unused_reservations(now)
 
+    def reconfigure(self, config):
+        self.c = config
+        if self.bandwidth.maxlen != config.srp_bandwidth_history_len:       # the only thing sized from the config
+            self.bandwidth = deque(self.bandwidth, maxlen=config.srp_bandwidth_history_len)
+
+    def snapshot(self):
+        return {"srp": [{"stream": f"{mac}/{uid}", "requested": ts, "data_vlan": vlan,
+                         "seen_traffic": (mac, uid) in self.judged or vlan in self.traffic.get(mac, {})}
+                        for (mac, uid), (ts, vlan) in self.reservations.items()]}
+
     def _talker(self, msg) -> List[Alert]:
         ts = msg["ts"]
         mac, uid = msg["stream_mac"], msg["stream_unique_id"]
