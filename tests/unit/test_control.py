@@ -10,7 +10,7 @@ import helpers  # noqa: F401  (puts the repository on sys.path)
 from helpers import cb
 from ids import frer, ptp, srp
 from ids.__main__ import build_engine
-from ids.catalog import NAMES, RULES
+from ids.catalog import NAMES, RULES, rule_name
 from ids.config import Config
 from ids.control import CONTROL, STATE, Control, validate
 
@@ -43,8 +43,20 @@ class CatalogTest(unittest.TestCase):
             self.assertLessEqual(set(rule.thresholds), fields, rule.name)
 
 
+    def test_rule_numbers_are_unique_and_follow_the_protocol(self):
+        self.assertEqual(len({r.id for r in RULES}), len(RULES))
+        base = {"frer": 100, "srp": 200, "ptp": 300}
+        for r in RULES:
+            self.assertEqual(r.id // 100 * 100, base[r.protocol], r.name)
+
+    def test_rule_by_name_or_number(self):
+        self.assertEqual([rule_name(x) for x in ("srp_request_burst", 203, "203", 999, "nope", True)],
+                         ["srp_request_burst", "srp_request_burst", "srp_request_burst", None, None, None])
+
+
 class ValidateTest(unittest.TestCase):
     def test_accepts_rules_and_numbers_and_keeps_the_type_of_the_field(self):
+        self.assertEqual(validate({"disabled_rules": [103, "202"]}, Config())[0], {"frer_dead_stream", "srp_bandwidth_jump"})
         disabled, config = validate({"disabled_rules": ["frer_dead_stream"], "config": {"timeout": 30, "frer_history_size": 7.0}},
                                     Config())
         self.assertEqual(disabled, {"frer_dead_stream"})
@@ -52,7 +64,7 @@ class ValidateTest(unittest.TestCase):
         self.assertIsInstance(config.frer_history_size, int)
 
     def test_rejects_what_does_not_fit(self):
-        for bad in ({"disabled_rules": ["nope"]}, {"disabled_rules": "frer_dead_stream"}, {"config": {"nope": 1}},
+        for bad in ({"disabled_rules": ["nope"]}, {"disabled_rules": [999]}, {"disabled_rules": "frer_dead_stream"}, {"config": {"nope": 1}},
                     {"config": {"timeout": "30"}}, {"config": {"timeout": True}}, {"config": {"timeout": -1}},
                     {"config": {"frer_history_size": 2.5}}, {"other": 1}, []):
             with self.assertRaises(ValueError, msg=bad):

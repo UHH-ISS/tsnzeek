@@ -22,7 +22,7 @@ import os
 import time
 from dataclasses import asdict, fields, replace
 
-from .catalog import NAMES, RULES
+from .catalog import RULES, rule_name
 from .config import Config
 
 STATE = "state.json"
@@ -37,11 +37,13 @@ def validate(data, base: Config):
     if unknown:
         raise ValueError(f"unknown keys: {sorted(unknown)}")
     disabled = data.get("disabled_rules", [])
-    if not isinstance(disabled, list) or not all(isinstance(r, str) for r in disabled):
-        raise ValueError("disabled_rules must be a list of rule names")
-    bad = sorted(set(disabled) - NAMES)
+    if not isinstance(disabled, list):
+        raise ValueError("disabled_rules must be a list of rule names or numbers")
+    names = [rule_name(r) for r in disabled]
+    bad = [r for r, n in zip(disabled, names) if n is None]
     if bad:
         raise ValueError(f"unknown rules: {bad}")
+    disabled = names
     overrides = data.get("config", {})
     if not isinstance(overrides, dict):
         raise ValueError("config must be an object")
@@ -148,7 +150,7 @@ class Control:
             "pid": os.getpid(), "started": self.started, "updated": time.time(), "connected": self.connected,
             "error": self.error, **self.info,
             "messages": dict(self.messages), "messages_per_second": self.rate, "streams": self._streams(),
-            "rules": [{"name": r.name, "protocol": r.protocol, "summary": r.summary, "thresholds": list(r.thresholds),
+            "rules": [{"id": r.id, "name": r.name, "protocol": r.protocol, "summary": r.summary, "thresholds": list(r.thresholds),
                        "enabled": r.name not in self.engine.disabled, "alerts": self.alerts[r.name]} for r in RULES],
             "config": {"active": active, "defaults": defaults,
                        "changed": sorted(k for k in active if active[k] != defaults[k])},
