@@ -1,0 +1,237 @@
+{# (C) 2026 Doganalp Ergenc, written with the assistance of Claude #}
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TSNZeek console</title>
+<style>
+:root { --bg:#f6f7f9; --card:#fff; --ink:#1b1f24; --mute:#65707d; --line:#dde1e6; --accent:#2557d6; --ok:#1a7f4b; --warn:#b45309; --bad:#c62828; --chip:#eef1f5; }
+@media (prefers-color-scheme: dark) { :root { --bg:#12151a; --card:#1a1f26; --ink:#e6e9ee; --mute:#8d97a4; --line:#2b333d; --accent:#7ea2ff; --ok:#4cc38a; --warn:#f0a04b; --bad:#ff7b72; --chip:#252c36; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.45 system-ui,sans-serif; }
+header { display:flex; flex-wrap:wrap; gap:12px 24px; align-items:center; padding:12px 16px; background:var(--card); border-bottom:1px solid var(--line); }
+h1 { font-size:16px; margin:0; }
+nav { display:flex; gap:4px; }
+nav a { padding:6px 12px; border-radius:6px; color:var(--mute); text-decoration:none; }
+nav a.on { background:var(--chip); color:var(--ink); }
+.status { margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; }
+.badge { padding:2px 10px; border-radius:99px; background:var(--chip); font-size:12px; }
+.badge.ok { color:var(--ok); } .badge.warn { color:var(--warn); } .badge.bad { color:var(--bad); }
+main { padding:16px; max-width:1200px; margin:0 auto; }
+section { display:none; } section.on { display:block; }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; margin-bottom:12px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:12px 14px; overflow-x:auto; }
+.card h2 { font-size:13px; margin:0 0 8px; color:var(--mute); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+.big { font-size:28px; font-weight:600; font-variant-numeric:tabular-nums; }
+table { width:100%; border-collapse:collapse; font-variant-numeric:tabular-nums; }
+th, td { text-align:left; padding:4px 8px 4px 0; border-bottom:1px solid var(--line); vertical-align:top; }
+th { color:var(--mute); font-weight:500; font-size:12px; }
+.mute { color:var(--mute); } .num { text-align:right; }
+.chip { display:inline-block; padding:0 7px; margin:1px 3px 1px 0; border-radius:4px; background:var(--chip); font-size:12px; }
+.rule { display:grid; grid-template-columns:auto 1fr auto; gap:2px 12px; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); }
+.rule:last-child { border-bottom:0; } .rule.off .name { text-decoration:line-through; color:var(--mute); }
+.name { font-weight:600; } .rule .sub { grid-column:2 / 4; }
+input[type=number] { width:110px; padding:3px 6px; background:var(--bg); color:var(--ink); border:1px solid var(--line); border-radius:4px; }
+button, select { padding:4px 10px; border:1px solid var(--line); border-radius:6px; background:var(--card); color:var(--ink); cursor:pointer; font:inherit; }
+button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+button:disabled { opacity:.45; cursor:default; }
+.switch { position:relative; width:36px; height:20px; } .switch input { opacity:0; width:0; height:0; }
+.switch span { position:absolute; inset:0; background:var(--line); border-radius:99px; transition:.15s; cursor:pointer; }
+.switch span::before { content:""; position:absolute; left:2px; top:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:.15s; }
+.switch input:checked + span { background:var(--ok); } .switch input:checked + span::before { transform:translateX(16px); }
+#log { background:var(--card); border:1px solid var(--line); border-radius:8px; height:60vh; overflow:auto; padding:8px 10px; font:12px/1.5 ui-monospace,monospace; white-space:pre-wrap; word-break:break-all; }
+#log div { border-bottom:1px solid var(--line); padding:1px 0; } #log .t { color:var(--mute); }
+.bar { display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap; }
+#toast { position:fixed; right:16px; bottom:16px; padding:8px 14px; border-radius:8px; background:var(--ink); color:var(--bg); opacity:0; transition:.2s; pointer-events:none; }
+#toast.show { opacity:1; } #toast.err { background:var(--bad); color:#fff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>TSNZeek console</h1>
+  <nav id="nav">
+    <a href="#overview">Overview</a><a href="#rules">Rules</a><a href="#config">Config</a><a href="#logs">Logs</a>
+  </nav>
+  <div class="status"><span class="badge" id="b-ids">IDS</span><span class="badge" id="b-zeek">Zeek</span><span class="badge" id="b-ctl"></span></div>
+</header>
+<main>
+<section id="overview">
+  <div class="grid">
+    <div class="card"><h2>Messages per second</h2><div class="big" id="rate">–</div><div class="mute" id="rate-by"></div></div>
+    <div class="card"><h2>Alerts since start</h2><div class="big" id="alert-total">–</div><div class="mute" id="alert-by"></div></div>
+    <div class="card"><h2>Active rules</h2><div class="big" id="rules-on">–</div><div class="mute" id="rules-off"></div></div>
+    <div class="card"><h2>Changed from defaults</h2><div class="big" id="changed-n">–</div><div class="mute" id="changed-list"></div></div>
+  </div>
+  <div class="grid">
+    <div class="card"><h2>FRER streams</h2><div id="s-frer"></div></div>
+    <div class="card"><h2>SRP reservations</h2><div id="s-srp"></div></div>
+    <div class="card"><h2>PTP domains</h2><div id="s-ptp"></div></div>
+  </div>
+  <div class="card"><h2>Latest alerts</h2><div id="recent"></div></div>
+</section>
+
+<section id="rules"><div class="grid" id="rule-cards"></div>
+  <div class="bar"><button id="reset">Reset all rules and thresholds</button><span class="mute">Disabled rules keep running but raise no alerts. Changes apply within half a second.</span></div>
+</section>
+
+<section id="config"><div class="card"><table id="cfg-table">
+  <thead><tr><th>Threshold</th><th>Used by</th><th class="num">Default</th><th>Active</th><th></th></tr></thead><tbody></tbody></table></div></section>
+
+<section id="logs">
+  <div class="bar"><select id="log-name"></select><label><input type="checkbox" id="log-follow" checked> follow</label>
+    <button id="log-clear">Clear</button><span class="mute" id="log-info"></span></div>
+  <div id="log"></div>
+</section>
+</main>
+<div id="toast"></div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+const csrf = () => (document.cookie.match(/csrftoken=([^;]+)/) || [])[1] || "";
+let S = null, CTL = {}, LOGS = [], dirty = new Set();
+
+function el(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) { if (k === "class") e.className = v; else if (k.startsWith("on")) e[k] = v; else e.setAttribute(k, v); }
+  for (const k of kids.flat()) e.append(k instanceof Node ? k : document.createTextNode(k ?? ""));
+  return e;
+}
+function toast(msg, err) { const t = $("toast"); t.textContent = msg; t.className = "show" + (err ? " err" : ""); clearTimeout(t._h); t._h = setTimeout(() => t.className = "", 2600); }
+const fmtTime = (ts) => new Date(ts * 1000).toLocaleTimeString();
+const fmtNum = (n) => (n == null ? "–" : Number(n).toLocaleString());
+
+async function post(url, body) {
+  const r = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json", "X-CSRFToken": csrf() }, body: JSON.stringify(body) });
+  const j = await r.json();
+  if (!j.ok) { toast(j.error || "failed", true); return false; }
+  CTL = j.control; toast("Applied"); setTimeout(poll, 700); return true;
+}
+
+// ---- tabs
+function tab() {
+  const t = (location.hash || "#overview").slice(1);
+  document.querySelectorAll("section").forEach((s) => s.classList.toggle("on", s.id === t));
+  document.querySelectorAll("#nav a").forEach((a) => a.classList.toggle("on", a.hash === "#" + t));
+  if (t === "logs") logPoll();
+}
+addEventListener("hashchange", tab);
+
+// ---- state
+async function poll() {
+  try {
+    const j = await (await fetch("api/state")).json();
+    CTL = j.control || {}; LOGS = j.logs || []; S = j.available ? j : null;
+  } catch (e) { S = null; }
+  render();
+}
+
+function badge(id, text, cls) { const b = $(id); b.textContent = text; b.className = "badge " + cls; }
+
+function render() {
+  const st = S && S.state;
+  if (!S) { badge("b-ids", "IDS: no state.json", "bad"); badge("b-zeek", "Zeek: unknown", "warn"); }
+  else if (S.stale) { badge("b-ids", `IDS: silent for ${Math.round(S.age)} s`, "bad"); badge("b-zeek", "Zeek: unknown", "warn"); }
+  else { badge("b-ids", "IDS: running", "ok"); badge("b-zeek", st.connected ? "Zeek: connected" : "Zeek: not connected", st.connected ? "ok" : "warn"); }
+  if (st && st.error) { badge("b-ctl", "control.json: " + st.error, "bad"); $("b-ctl").hidden = false; } else $("b-ctl").hidden = true;
+  if (!st) return;
+  renderOverview(st); renderRules(st); renderConfig(st);
+  const sel = $("log-name"), have = [...sel.options].map((o) => o.value).join();
+  if (have !== LOGS.join()) { const cur = sel.value; sel.replaceChildren(...LOGS.map((n) => el("option", { value: n }, n))); if (LOGS.includes(cur)) sel.value = cur; else if (LOGS.length) { sel.value = LOGS.includes("alerts") ? "alerts" : LOGS[0]; logReset(); } }
+}
+
+function pairs(obj, unit) { return Object.entries(obj || {}).map(([k, v]) => el("span", { class: "chip" }, `${k} ${fmtNum(v)}${unit || ""}`)); }
+
+function renderOverview(st) {
+  const rate = Object.values(st.messages_per_second || {}).reduce((a, b) => a + b, 0);
+  $("rate").textContent = rate.toFixed(1); $("rate-by").replaceChildren(...pairs(st.messages_per_second, "/s"));
+  const byRule = st.rules.filter((r) => r.alerts);
+  $("alert-total").textContent = fmtNum(st.rules.reduce((a, r) => a + r.alerts, 0));
+  $("alert-by").replaceChildren(...byRule.map((r) => el("span", { class: "chip" }, `${r.name} ${r.alerts}`)));
+  const off = st.rules.filter((r) => !r.enabled);
+  $("rules-on").textContent = `${st.rules.length - off.length} / ${st.rules.length}`;
+  $("rules-off").replaceChildren(...off.map((r) => el("span", { class: "chip" }, "off: " + r.name)));
+  $("changed-n").textContent = st.config.changed.length;
+  $("changed-list").replaceChildren(...st.config.changed.map((k) => el("span", { class: "chip" }, `${k} ${st.config.active[k]}`)));
+  table("s-frer", st.streams.frer, ["stream", "last_sequence_nr", "last_accepted"], { last_accepted: fmtTime });
+  table("s-srp", st.streams.srp, ["stream", "data_vlan", "requested", "seen_traffic"], { requested: fmtTime, seen_traffic: (v) => (v ? "yes" : "no") });
+  table("s-ptp", st.streams.ptp, ["domain", "clocks", "last_announce", "grandmaster"], { last_announce: fmtTime, grandmaster: (v) => v.join(" / ") });
+}
+
+function table(id, rows, cols, fmt) {
+  const box = $(id);
+  if (!rows || !rows.length) { box.replaceChildren(el("span", { class: "mute" }, "none seen")); return; }
+  box.replaceChildren(el("table", {}, el("thead", {}, el("tr", {}, cols.map((c) => el("th", {}, c.replaceAll("_", " "))))),
+    el("tbody", {}, rows.map((r) => el("tr", {}, cols.map((c) => el("td", {}, (fmt && fmt[c] ? fmt[c](r[c]) : r[c]) ?? "")))))));
+}
+
+const PROTOCOLS = [["frer", "FRER (IEEE 802.1CB)"], ["srp", "SRP (IEEE 802.1Qcc)"], ["ptp", "PTP / gPTP"]];
+function renderRules(st) {
+  if ($("rules").querySelector("input:focus")) return;
+  $("rule-cards").replaceChildren(...PROTOCOLS.map(([p, title]) => el("div", { class: "card" }, el("h2", {}, title),
+    st.rules.filter((r) => r.protocol === p).map((r) => el("div", { class: "rule" + (r.enabled ? "" : " off") },
+      el("span", { class: "mute" }, "#" + r.id), el("span", { class: "name" }, r.name),
+      el("label", { class: "switch" }, el("input", { type: "checkbox", ...(r.enabled ? { checked: "" } : {}), onchange: (e) => post("api/rule", { rule: r.name, enabled: e.target.checked }).then((ok) => { if (!ok) e.target.checked = !e.target.checked; }) }), el("span")),
+      el("div", { class: "sub" }, r.summary, " ", r.thresholds.map((t) => el("span", { class: "chip" }, `${t} = ${st.config.active[t]}`)), r.alerts ? el("span", { class: "chip", style: "color:var(--warn)" }, r.alerts + " alerts") : "")))))); 
+}
+
+function renderConfig(st) {
+  const usedBy = {}; st.rules.forEach((r) => r.thresholds.forEach((t) => (usedBy[t] = usedBy[t] || []).push(r.name)));
+  const body = $("cfg-table").tBodies[0];
+  if (body.querySelector("input:focus")) return;
+  body.replaceChildren(...Object.keys(st.config.defaults).map((k) => {
+    const changed = st.config.active[k] !== st.config.defaults[k];
+    const input = el("input", { type: "number", step: Number.isInteger(st.config.defaults[k]) ? "1" : "any", min: "0", value: st.config.active[k] });
+    const apply = () => post("api/config", { set: { [k]: Number(input.value) } });
+    input.onkeydown = (e) => { if (e.key === "Enter") apply(); };
+    return el("tr", {}, el("td", {}, k, changed ? el("span", { class: "chip", style: "color:var(--warn)" }, "changed") : ""),
+      el("td", { class: "mute" }, (usedBy[k] || ["–"]).join(", ")), el("td", { class: "num mute" }, st.config.defaults[k]),
+      el("td", {}, input), el("td", {}, el("button", { class: "primary", onclick: apply }, "Apply"), " ",
+        el("button", { onclick: () => post("api/config", { unset: [k] }), ...(changed ? {} : { disabled: "" }) }, "Default")));
+  }));
+}
+$("reset").onclick = () => confirm("Enable every rule and return all thresholds to the values of the config file?") && post("api/reset", {});
+
+// ---- logs
+let logOffset = -1, logName = "";
+function logReset() { logOffset = -1; logName = $("log-name").value; $("log").replaceChildren(); }
+$("log-name").onchange = () => { logReset(); logPoll(); };
+$("log-clear").onclick = () => $("log").replaceChildren();
+function lineView(name, text) {
+  if (name === "alerts") return text;
+  try {
+    const r = JSON.parse(text), { ts, ...rest } = r;
+    return [el("span", { class: "t" }, ts ? new Date(ts * 1000).toISOString().slice(11, 23) + "  " : ""), Object.entries(rest).filter(([, v]) => v !== null && v !== "").map(([k, v]) => `${k}=${Array.isArray(v) ? v.join(",") : v}`).join("  ")];
+  } catch (e) { return text; }
+}
+async function logPoll() {
+  if (location.hash !== "#logs" || !$("log-name").value) return;
+  if (logName !== $("log-name").value) logReset();
+  try {
+    const j = await (await fetch(`api/logs?name=${logName}&offset=${logOffset}`)).json();
+    if (j.ok) {
+      logOffset = j.offset; const box = $("log"), follow = $("log-follow").checked;
+      for (const l of j.lines) box.append(el("div", {}, lineView(logName, l)));
+      while (box.childElementCount > 1500) box.firstChild.remove();
+      if (follow && j.lines.length) box.scrollTop = box.scrollHeight;
+      $("log-info").textContent = `${box.childElementCount} lines shown`;
+    }
+  } catch (e) {}
+}
+
+// ---- latest alerts on the overview
+let recentOffset = -1, recentLines = [];
+async function recentPoll() {
+  if (!LOGS.includes("alerts")) return;
+  try {
+    const j = await (await fetch(`api/logs?name=alerts&offset=${recentOffset}`)).json();
+    if (!j.ok) return;
+    recentOffset = j.offset; recentLines = recentLines.concat(j.lines).slice(-8);
+    $("recent").replaceChildren(recentLines.length ? el("table", {}, el("tbody", {}, recentLines.slice().reverse().map((l) => el("tr", {}, el("td", {}, l.replace(/^ALERT /, "")))))) : el("span", { class: "mute" }, "no alerts yet"));
+  } catch (e) {}
+}
+
+tab(); poll(); setInterval(poll, 1500); setInterval(logPoll, 1000); setInterval(recentPoll, 2000); setTimeout(recentPoll, 800);
+</script>
+</body>
+</html>
