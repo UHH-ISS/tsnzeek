@@ -15,7 +15,7 @@
 # -----------------------------------------------------------
 
 from dataclasses import dataclass
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Set
 
 
 @dataclass(frozen=True)
@@ -45,12 +45,22 @@ class Detector:
         """Called when the clock has advanced by `tick_interval`; for timeouts."""
         return ()
 
+    def reconfigure(self, config) -> None:
+        """New thresholds at run time. Detectors read `self.c.<field>` where they use it, so replacing the object is
+        enough: one assignment, nothing learned is lost. Override if a detector sized something from the config."""
+        self.c = config
+
+    def snapshot(self) -> dict:
+        """What the detector currently tracks, for the web interface: {protocol: [row, ...]} with JSON-able rows."""
+        return {}
+
 
 class Engine:
     def __init__(self, detectors: List[Detector], tick_interval: float = 1.0):
         self.detectors = detectors
         self.tick_interval = tick_interval
         self.now = 0.0
+        self.disabled: Set[str] = set()      # rules that keep running but raise no alerts (set by ids/control.py)
         self._last_tick = None
 
     def feed(self, kind: str, msg: dict) -> List[Alert]:
@@ -62,7 +72,7 @@ class Engine:
             self._last_tick = self.now
         if self.now - self._last_tick >= self.tick_interval:
             alerts.extend(self.tick(self.now))
-        return alerts
+        return self._enabled(alerts)
 
     def tick(self, now: float) -> List[Alert]:
         """Advance the clock without a message (live idle time, or draining at the end of a pcap)."""
@@ -71,4 +81,7 @@ class Engine:
         alerts: List[Alert] = []
         for d in self.detectors:
             alerts.extend(d.on_tick(self.now))
-        return alerts
+        return self._enabled(alerts)
+
+    def _enabled(self, alerts: List[Alert]) -> List[Alert]:
+        return [a for a in alerts if a.rule not in self.disabled] if self.disabled else alerts

@@ -44,6 +44,10 @@ class FrerDetector(Detector):
     def on_tick(self, now):
         return self._dead_streams(now)
 
+    def snapshot(self):
+        return {"frer": [{"stream": sid, "last_sequence_nr": r[0], "last_accepted": r[2]}
+                         for sid, r in self.recovery.items()]}
+
     def _copies(self, sid, seq, ts) -> List[Alert]:
         entry = self.history.setdefault(sid, OrderedDict()).setdefault(seq, [0, ts])
         entry[0] += 1

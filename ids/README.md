@@ -14,6 +14,23 @@ python3 -m ids --replay cb.log srp.log ptp.log                                  
 TSN::wait_for_peer=T` runs (the tests use it). Thresholds come from a JSON file whose keys are the fields of `Config` in
 `config.py`.
 
+## Run-time control
+
+`--control-dir DIR` (or `$TSNZEEK_CONTROL_DIR`; the systemd service uses `/var/lib/tsnzeek`, `deploy/headless.sh` uses
+`$TSNZEEK_DIR/control`) opens a channel for the web interface, two JSON files in that directory:
+
+| File | Written by | Content |
+| --- | --- | --- |
+| `state.json` | the IDS, about every two seconds and at once after a change | whether Zeek is connected, the rules with protocol, thresholds, enabled flag and alert count, the active configuration with the defaults and what differs, messages and messages per second, the tracked streams (`frer`, `srp`, `ptp`) |
+| `control.json` | the web interface (atomically, `os.replace`) | `{"disabled_rules": ["srp_request_burst"], "config": {"timeout": 30}}` |
+
+Changes apply within half a second and cost the packet path nothing: the main loop looks at the file's `stat` twice a
+second, and the detectors read their thresholds as `self.c.<field>` where they use them, so a new config is one
+assignment (`Detector.reconfigure`) and nothing learned (streams, grandmasters, sequence numbers) is lost. A disabled rule
+keeps running, so that it knows the traffic when you enable it again, but raises no alerts. A file that does not validate
+(unknown rule or key, a string or negative number, a fraction for a whole number) is ignored as a whole and the reason is
+in `state.json` under `error`. The list of rules is `catalog.py`; a test keeps it equal to what the detectors can raise.
+
 ## Rules
 
 Every rule has a name that says what it detects; the same name appears in alerts, tests and the `tsn` attack commands of

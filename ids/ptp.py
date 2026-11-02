@@ -45,6 +45,11 @@ class PtpDetector(Detector):
         self.flagged: Set[Tuple[int, str]] = set()                     # clocks ptp2 has already reported
         self.sequence: Dict[tuple, Tuple[int, float]] = {}             # stream key -> (last sequenceId, last ts)
 
+    def snapshot(self):
+        return {"ptp": [{"domain": d, "last_announce": last, "clocks": len(self.announcers.get(d, {})),
+                         "grandmaster": [str(x) for x in dataset]}
+                        for d, (dataset, last) in self.grandmaster.items()]}
+
     def on_message(self, kind, msg):
         if kind != "ptp":
             return ()
