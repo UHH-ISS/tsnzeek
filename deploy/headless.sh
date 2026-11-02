@@ -2,9 +2,11 @@
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Run Zeek and the IDS in the background without a terminal window and without installing a service.
 #
-#   deploy/headless.sh start [-i INTERFACE] [-d TSNZEEK_DIR] [-c IDS_CONFIG.json]
+#   deploy/headless.sh start [-i INTERFACE] [-d TSNZEEK_DIR] [-c IDS_CONFIG.json] [-w [-p PORT]]
 #   deploy/headless.sh stop   [-d TSNZEEK_DIR]
 #   deploy/headless.sh status [-d TSNZEEK_DIR]
+#
+# -w also starts the web interface (web/, needs Django in .venv) on 127.0.0.1:PORT (default 8000), as the user.
 #
 # Everything lives in one directory: logs/ (Zeek's logs, alerts.log, ids.out, monitor.out), run/ (pid files) and control/ (state.json and
 # control.json, the channel to the web interface).
@@ -28,11 +30,15 @@ DIR="${TSNZEEK_DIR:-$USER_HOME/tsnzeek}"
 CONFIG="${TSNZEEK_CONFIG:-}"
 
 cmd="${1:-}"; [[ $# -gt 0 ]] && shift
-while getopts "i:d:c:" opt; do
+WEB=0
+PORT=8000
+while getopts "i:d:c:wp:" opt; do
 	case "$opt" in
 		i) IFACE="$OPTARG" ;;
 		d) DIR="$OPTARG" ;;
 		c) CONFIG="$OPTARG" ;;
+		w) WEB=1 ;;
+		p) PORT="$OPTARG" ;;
 		*) exit 2 ;;
 	esac
 done
@@ -41,6 +47,7 @@ LOGS="$DIR/logs"
 RUN="$DIR/run"
 IDS_PID="$RUN/ids.pid"
 MONITOR_PID="$RUN/monitor.pid"
+WEB_PID="$RUN/web.pid"
 
 alive() { [[ -f "$1" ]] && kill -0 "$(cat "$1")" 2>/dev/null; }          # signal 0 fails for root's Zeek if we are not root
 running() { [[ -f "$1" ]] && [[ -d "/proc/$(cat "$1")" ]]; }
@@ -60,7 +67,7 @@ stop_one() {    # name pidfile
 
 case "$cmd" in
 start)
-	if running "$IDS_PID" || running "$MONITOR_PID"; then
+	if running "$IDS_PID" || running "$MONITOR_PID" || running "$WEB_PID"; then
 		echo "already running (deploy/headless.sh status); stop it first" >&2; exit 1
 	fi
 	[[ -f "$ROOT/build/spicy/tsn.hlto" ]] || { echo "build first: $ROOT/build.sh" >&2; exit 1; }
@@ -84,29 +91,45 @@ start)
 	# Zeek writes its logs into the working directory (logs/). The wrapper records the pid of Zeek itself (exec keeps it).
 	zeek_cmd=(env ZEEK_SPICY_MODULE_PATH="$ROOT/build/spicy" sh -c 'echo $$ >"$0"; exec "$@"' "$MONITOR_PID"
 		"$ZEEK_PREFIX/bin/zeek" -C -i "$IFACE" "$ROOT/spicy/scripts" LogAscii::use_json=T TSN::log_flush_interval=1sec)
-	if [[ $EUID -ne 0 ]] && getcap "$ZEEK_PREFIX/bin/zeek" 2>/dev/null | grep -q cap_net_raw; then
-		(cd "$LOGS" && setsid nohup "${zeek_cmd[@]}" >monitor.out 2>&1 &)
+	# Only the command itself goes to the background (`cd ... && cmd &` would background the whole list, and a shell
+	# function in front of it would run in a subshell): such a subshell keeps the original stdout open for as long as
+	# Zeek runs, and `headless.sh start | tee` would never end.
+	if [[ $EUID -eq 0 ]] || getcap "$ZEEK_PREFIX/bin/zeek" 2>/dev/null | grep -q cap_net_raw; then
+		(cd "$LOGS"; setsid nohup "${zeek_cmd[@]}" >monitor.out 2>&1 &)
 	else
-		(cd "$LOGS" && as_root setsid nohup "${zeek_cmd[@]}" >monitor.out 2>&1 &)
+		(cd "$LOGS"; sudo setsid nohup "${zeek_cmd[@]}" >monitor.out 2>&1 &)
 	fi
 	for _ in $(seq 50); do running "$MONITOR_PID" && break; sleep 0.1; done
 	sleep 1
+	if [[ $WEB -eq 1 ]] && running "$MONITOR_PID" && running "$IDS_PID"; then
+		web_py="$ROOT/.venv/bin/python"; [[ -x "$web_py" ]] || web_py=python3
+		if ! "$web_py" -c "import django" 2>/dev/null; then
+			echo "the web interface needs Django: $ROOT/.venv/bin/pip install -r $ROOT/web/requirements.txt" >&2
+		else
+			web_cmd=(env TSNZEEK_CONTROL_DIR="$DIR/control" TSNZEEK_LOG_DIR="$LOGS" "$web_py" "$ROOT/web/manage.py" runserver --noreload "127.0.0.1:$PORT")
+			[[ -n "$OWNER" ]] && web_cmd=(sudo -u "$OWNER" "${web_cmd[@]}")
+			(cd "$ROOT"; setsid nohup "${web_cmd[@]}" >"$LOGS/web.out" 2>&1 & echo $! >"$WEB_PID")
+			sleep 1
+			running "$WEB_PID" && echo "web interface: http://127.0.0.1:$PORT/" || echo "the web interface did not start; see $LOGS/web.out" >&2
+		fi
+	fi
 	if running "$MONITOR_PID" && running "$IDS_PID"; then
 		echo "started: interface $IFACE, everything in $DIR (logs in $LOGS)"
 		echo "  tail -f $LOGS/alerts.log     stop: deploy/headless.sh stop -d $DIR"
 	else
 		echo "start failed; see $LOGS/monitor.out and $LOGS/ids.out" >&2
-		stop_one IDS "$IDS_PID" >/dev/null; stop_one Monitor "$MONITOR_PID" >/dev/null; exit 1
+		stop_one IDS "$IDS_PID" >/dev/null; stop_one Monitor "$MONITOR_PID" >/dev/null; stop_one Web "$WEB_PID" >/dev/null; exit 1
 	fi
 	;;
 stop)
+	stop_one Web "$WEB_PID"
 	stop_one IDS "$IDS_PID"
 	stop_one Monitor "$MONITOR_PID"
 	;;
 status)
-	for n in IDS Monitor; do
+	for n in IDS Monitor Web; do
 		pf="$RUN/$(echo "$n" | tr A-Z a-z).pid"
-		if running "$pf"; then echo "$n: running (pid $(cat "$pf"))"; else echo "$n: not running"; fi
+		if running "$pf"; then echo "$n: running (pid $(cat "$pf"))"; elif [[ $n != Web ]]; then echo "$n: not running"; fi
 	done
 	[[ -f "$LOGS/ids.out" ]] && tail -n 3 "$LOGS/ids.out" | sed 's/^/  ids.out: /'
 	;;
