@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Run-time control
+- `ids/catalog.py` lists the rules as data (name, protocol, summary, thresholds); a test keeps it equal to the rules the detectors raise.
+- `--control-dir` / `$TSNZEEK_CONTROL_DIR`: the IDS writes `state.json` (rules, active configuration, counters, messages per second, tracked streams, connection to Zeek) and applies `control.json` (disabled rules, threshold overrides) within half a second, without a restart and without losing what the detectors learned (`Detector.reconfigure`). The service uses `/var/lib/tsnzeek`, `headless.sh` uses `$TSNZEEK_DIR/control`.
+- The IDS no longer blocks inside Broker's `peer()` while Zeek is down (`peer_nosync`), so state and control are served while it waits.
+
 ### Service
 - Optional systemd services in `deploy/` (monitor and IDS as user `tsnzeek`, `install.sh`, logs in `/var/log/tsnzeek`, daily Zeek log rotation, logrotate for the alert log); TSNZeek still runs without them.
 - IDS: `--service` (waits for Zeek without a time limit and survives Zeek restarts), `--alert-log`, and the config file is looked up in `--config`, `$TSNZEEK_CONFIG`, `/etc/tsnzeek/ids.json`, then the defaults.

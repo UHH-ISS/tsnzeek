@@ -6,7 +6,8 @@
 #   deploy/headless.sh stop   [-d TSNZEEK_DIR]
 #   deploy/headless.sh status [-d TSNZEEK_DIR]
 #
-# Everything lives in one directory: logs/ (Zeek's logs, alerts.log, ids.out, monitor.out) and run/ (pid files).
+# Everything lives in one directory: logs/ (Zeek's logs, alerts.log, ids.out, monitor.out), run/ (pid files) and control/ (state.json and
+# control.json, the channel to the web interface).
 # Defaults: interface $TSNZEEK_INTERFACE (else the first non-loopback one), directory $TSNZEEK_DIR (else ~/tsnzeek),
 # IDS config $TSNZEEK_CONFIG (else /etc/tsnzeek/ids.json if it exists, else the defaults).
 # Capturing needs root: the script uses sudo for Zeek unless you are root or Zeek has been given the capabilities
@@ -64,7 +65,7 @@ start)
 	[[ -d "/sys/class/net/$IFACE" ]] || { echo "no such interface: $IFACE (ip -br link)" >&2; exit 1; }
 	mkdir -p "$LOGS" "$RUN"
 
-	ids_args=(--service --alert-log "$LOGS/alerts.log")
+	ids_args=(--service --alert-log "$LOGS/alerts.log" --control-dir "$DIR/control")
 	[[ -n "$CONFIG" ]] && ids_args+=(--config "$CONFIG")
 	# Only the python command goes to the background (`&` after `&&` would background the whole list, and $! would be a subshell).
 	(cd "$ROOT"; PYTHONPATH="$ZEEK_PREFIX/lib/zeek/python" setsid nohup python3 -m ids "${ids_args[@]}" \
