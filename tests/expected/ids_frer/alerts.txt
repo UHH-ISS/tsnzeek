@@ -1,5 +1,5 @@
-ALERT attack1 ts=1700000005.200000 Got more frames for compound stream 00:00:00:00:00:01/150 than expected (sequence_nr 6)
-ALERT attack3 ts=1700000007.000000 Out of order frame accepted for stream id 00:00:00:00:00:01/150: sequence_nr: 11 latest_valid: 7 delta: 4
-ALERT attack3 ts=1700000008.000000 Out of order frame discarded for stream id 00:00:00:00:00:01/150: sequence_nr: 5000 latest_valid: 11
-ALERT attack4 ts=1700000030.000000 1 member stream[s] of stream 00:00:00:00:00:01/150 are probably dead
-ALERT attack4 ts=1700000030.000000 All member streams of stream 00:00:00:00:00:01/150 are probably dead
+ALERT frer_excess_copies ts=1700000005.200000 Got more frames for compound stream 00:00:00:00:00:01/150 than expected (sequence_nr 6)
+ALERT frer_out_of_order ts=1700000007.000000 Out of order frame accepted for stream id 00:00:00:00:00:01/150: sequence_nr: 11 latest_valid: 7 delta: 4
+ALERT frer_out_of_order ts=1700000008.000000 Out of order frame discarded for stream id 00:00:00:00:00:01/150: sequence_nr: 5000 latest_valid: 11
+ALERT frer_dead_stream ts=1700000030.000000 1 member stream[s] of stream 00:00:00:00:00:01/150 are probably dead
+ALERT frer_dead_stream ts=1700000030.000000 All member streams of stream 00:00:00:00:00:01/150 are probably dead

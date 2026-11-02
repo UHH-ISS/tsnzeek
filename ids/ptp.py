@@ -1,12 +1,12 @@
 # -----------------------------------------------------------
 #
-#  ptp_rules.py
+#  ptp.py
 #
 # Rule-based detectors for (g)PTP, working on the records of ptp.log (Ethernet and UDP alike).
 #
-#   ptp1  a different grandmaster announces itself with a better clock than the current one (BMCA takeover)
-#   ptp2  Sync or Follow_Up from a clock that has not announced itself in the domain
-#   ptp3  sequenceId of a master's Sync/Follow_Up/Announce does not advance by one (replay, injection, loss)
+#   ptp_rogue_grandmaster  a different grandmaster announces itself with a better clock than the current one (BMCA takeover)
+#   ptp_unannounced_sync   Sync or Follow_Up from a clock that has not announced itself in the domain
+#   ptp_sequence_id        sequenceId of a master's Sync/Follow_Up/Announce does not advance by one (replay, injection, loss)
 #
 # The hosts of a test network can share one clock, so no rule compares timestamps with the local time.
 #
@@ -16,8 +16,12 @@
 
 from typing import Dict, List, Optional, Set, Tuple
 
+from .config import Config
 from .engine import Alert, Detector
-from .rules import Config
+
+ROGUE_GRANDMASTER = "ptp_rogue_grandmaster"
+UNANNOUNCED_SYNC = "ptp_unannounced_sync"
+SEQUENCE_ID = "ptp_sequence_id"
 
 
 SLAVE_ONLY = 255                         # clockClass of a clock that can only be a client
@@ -70,7 +74,7 @@ class PtpDetector(Detector):
             return []
         if new < old:                                                   # another clock would win the BMCA
             self.grandmaster[domain] = (new, ts)
-            return [Alert(ts, "ptp1", f"Grandmaster {new[-1]} announces itself in domain {domain} with a better clock "
+            return [Alert(ts, ROGUE_GRANDMASTER, f"Grandmaster {new[-1]} announces itself in domain {domain} with a better clock "
                                       f"(priority1 {new[0]}, class {new[1]}) than the current {old[-1]} "
                                       f"(priority1 {old[0]}, class {old[1]}); source {msg['source_clock_id']}",
                           f"domain {domain}")]
@@ -84,7 +88,7 @@ class PtpDetector(Detector):
         if not masters and ts - self.first_seen[domain] <= self.c.ptp_learning_time:
             return []                                                   # the Announce may simply not have been seen yet
         self.flagged.add((domain, clock))
-        return [Alert(ts, "ptp2", f"{msg['msg_type']} from clock {clock} in domain {domain}, which has not announced "
+        return [Alert(ts, UNANNOUNCED_SYNC, f"{msg['msg_type']} from clock {clock} in domain {domain}, which has not announced "
                                   f"itself" + (f" (masters: {', '.join(sorted(masters))})" if masters else ""),
                       f"domain {domain}")]
 
@@ -106,4 +110,4 @@ class PtpDetector(Detector):
             what = f"sequenceId went back from {last[0]} to {seq}"
         else:
             what = f"sequenceId jumped from {last[0]} to {seq} ({delta - 1} missing)"
-        return [Alert(ts, "ptp3", f"{who}: {what}", f"domain {domain}")]
+        return [Alert(ts, SEQUENCE_ID, f"{who}: {what}", f"domain {domain}")]

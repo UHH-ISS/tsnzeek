@@ -48,11 +48,11 @@ def say(text):
 
 # ------------------------------------------------------------------ one-shot
 
-def frer_dup(iface, a):
+def frer_mixed(iface, a):
     send(iface, [g.frer(s) for s in [1, 1, 2, 2, 3, 3, 4, 4, 4, 9]])
 
 
-def srp_flood(iface, a):
+def srp_oversized_request(iface, a):
     send(iface, [g.talker_msg(a.uid, num=20, den=1, frames_=50, size=2000, rank=True)])
 
 
@@ -117,15 +117,15 @@ def replay(iface, a):
 
 # ------------------------------------------------------------------ attacks
 
-def frer_extra_copy(iface, a):
+def frer_excess_copies(iface, a):
     send(iface, [g.frer(seq, vlan=a.vlan) for seq in range(a.start, a.start + 6) for _ in range(3)], gap=0.1)
 
 
-def frer_skip(iface, a):
+def frer_out_of_order(iface, a):
     send(iface, [g.frer(seq & 0xFFFF, vlan=a.vlan) for seq in range(a.start, a.start + 18, 3) for _ in range(2)], gap=0.1)
 
 
-def srp_change(iface, a):
+def srp_reservation_change(iface, a):
     send(iface, [g.talker_msg(a.uid, rank=True)], gap=0.5)
     send(iface, [g.talker_msg(a.uid, frames_=4, rank=True)])
 
@@ -134,10 +134,10 @@ def srp_change(iface, a):
 #  - Announce: logMessageInterval must be 0 (1 s), not Sync's -3. ptp4l counts a foreign master's Announce messages
 #    only inside a window of the announced interval, so with -3 the rogue was noticed but never a candidate.
 #    It also wants a path trace TLV (802.1AS) and several Announce messages (six here).
-#  - ptp_seq: both frames in one burst. Every sendp() call takes ~25 ms, enough for a real Sync to fall in between.
+#  - ptp_sequence_id: both frames in one burst. Every sendp() call takes ~25 ms, enough for a real Sync to fall in between.
 #  - --clock real: ptp4l's identity, h1's MAC with ff:fe in the middle.
 
-def ptp_rogue_gm(iface, a):
+def ptp_rogue_grandmaster(iface, a):
     """A clock with a far better priority announces itself as grandmaster (domain 0)."""
     path_trace = g.tlv(0x0008, g.ROGUE)
     send(iface, [g.ptp(g.ptp_msg(0xB, g.announce_body(priority1=1, clock_class=6, identity=g.ROGUE) + path_trace,
@@ -151,13 +151,13 @@ def clock_of(a, default):
     return REAL_MASTER if a.clock == "real" else bytes.fromhex(a.clock)
 
 
-def ptp_rogue_sync(iface, a):
+def ptp_unannounced_sync(iface, a):
     """Sync messages from a clock that never announced itself."""
     clock = clock_of(a, g.UNKNOWN)
     send(iface, [g.ptp(g.ptp_msg(0x0, g.timestamp(), seq=n, clock=clock)) for n in (1, 2, 3)], gap=0.3)
 
 
-def ptp_seq(iface, a):
+def ptp_sequence_id(iface, a):
     """Sync messages in the master's name with a sequenceId that jumps far ahead and is then repeated.
 
     The master is the one of `ptp_loop` unless --clock names another one."""
@@ -165,7 +165,8 @@ def ptp_seq(iface, a):
     send(iface, [g.ptp(g.ptp_msg(0x0, g.timestamp(), seq=1000, clock=clock)) for _ in range(2)], gap=0)
 
 
-# name -> (what it does, the rule the IDS should raise); `probe` is internal
+# name -> what it does; an attack command raises the IDS rule of the same name, plus the rules named after the text.
+# `probe` is internal.
 LEGIT = {
     "stream": "healthy FRER stream, 5 sequence numbers/s in 2 copies (Ctrl-C stops; --rate --copies --vlan ...)",
     "ptp_loop": "gPTP and PTP/UDP: Sync + Follow_Up every second, Announce every 5 s (Ctrl-C stops)",
@@ -174,19 +175,20 @@ LEGIT = {
     "replay": "send the frames of a pcap with their original spacing: replay tests/pcaps/ids_srp.pcap",
 }
 ATTACKS = {
-    "frer_extra_copy": ("three copies of every frame of a stream", "attack1"),
-    "frer_skip": ("sequence numbers that jump ahead by 3", "attack3"),
-    "frer_dup": ("extra copy, then a far-away sequence number, then silence", "attack1 attack3, later attack4"),
-    "srp_flood": ("a reservation over every threshold, with no stream behind it", "attack5, later attack9"),
-    "srp_change": ("the same reservation id requested twice", "attack8"),
-    "ptp_rogue_gm": ("a clock with a better priority announces itself as grandmaster", "ptp1"),
-    "ptp_rogue_sync": ("Sync from a clock that never announced itself", "ptp2"),
-    "ptp_seq": ("Sync in the master's name with a sequenceId that jumps and repeats (--clock real: ptp4l's master)", "ptp3"),
+    "frer_excess_copies": ("three copies of every frame of a stream", ""),
+    "frer_out_of_order": ("sequence numbers that jump ahead by 3", ""),
+    "frer_mixed": ("extra copy, then a far-away sequence number, then silence",
+                   "frer_excess_copies, frer_out_of_order, later frer_dead_stream"),
+    "srp_oversized_request": ("a reservation over every threshold, with no stream behind it", "and later srp_unused_reservation"),
+    "srp_reservation_change": ("the same reservation id requested twice", ""),
+    "ptp_rogue_grandmaster": ("a clock with a better priority announces itself as grandmaster", ""),
+    "ptp_unannounced_sync": ("Sync from a clock that never announced itself", ""),
+    "ptp_sequence_id": ("Sync in the master's name with a sequenceId that jumps and repeats (--clock real: ptp4l's master)", ""),
 }
 
 SCENARIOS = {f.__name__: f for f in (
     stream, ptp_loop, ptp, srp_normal, replay, probe,
-    frer_extra_copy, frer_skip, frer_dup, srp_flood, srp_change, ptp_rogue_gm, ptp_rogue_sync, ptp_seq)}
+    frer_excess_copies, frer_out_of_order, frer_mixed, srp_oversized_request, srp_reservation_change, ptp_rogue_grandmaster, ptp_unannounced_sync, ptp_sequence_id)}
 
 
 def listing(color=None):
@@ -196,8 +198,8 @@ def listing(color=None):
     width = max(len(n) for n in list(LEGIT) + list(ATTACKS)) + 6          # "  tsn " + name
     lines = [paint("1;32", "LEGIT TRAFFIC")]
     lines += [paint("32", f"  tsn {n}".ljust(width)) + f" {text}" for n, text in LEGIT.items()]
-    lines += ["", paint("1;31", "ATTACKS") + "  (the rule the IDS should raise)"]
-    lines += [paint("31", f"  tsn {n}".ljust(width)) + f" {text}  -> " + paint("31", rule)
+    lines += ["", paint("1;31", "ATTACKS") + "  (each raises the IDS rule of the same name)"]
+    lines += [paint("31", f"  tsn {n}".ljust(width)) + f" {text}" + (f"  -> {paint('31', rule)}" if rule else "")
               for n, (text, rule) in ATTACKS.items()]
     return "\n".join(lines)
 
@@ -223,11 +225,11 @@ def main():
     ap.add_argument("--start", type=int, default=1, help="stream: first sequence number")
     ap.add_argument("--step", type=int, default=1, help="stream: sequence number increment")
     ap.add_argument("--uid", type=int, default=1, help="srp_*: stream unique id")
-    ap.add_argument("--clock", help="ptp_seq, ptp_rogue_sync: clock identity as 16 hex digits, or `real` for the ptp4l master")
+    ap.add_argument("--clock", help="ptp_sequence_id, ptp_unannounced_sync: clock identity as 16 hex digits, or `real` for the ptp4l master")
     ap.add_argument("--pcap", help="replay: the pcap")
     ap.add_argument("--max-gap", type=float, default=2.0, help="replay: longest pause between frames, seconds")
     ap.add_argument("--debug", action="store_true", help="show the traceback of an unexpected error")
-    a = ap.parse_intermixed_args()          # options may come before the interface: `ptp_seq --clock real h1-eth0`
+    a = ap.parse_intermixed_args()          # options may come before the interface: `ptp_sequence_id --clock real h1-eth0`
 
     name = a.scenario.replace("-", "_")
     if name in ("commands", "help", "list"):

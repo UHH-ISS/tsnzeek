@@ -46,20 +46,20 @@ class PcapRules(unittest.TestCase):
         return dict(collections.Counter(a.rule for a in self.alerts(case)))
 
     def test_frer(self):
-        self.assertEqual(self.count("ids_frer"), {"attack1": 1, "attack3": 2, "attack4": 2})
+        self.assertEqual(self.count("ids_frer"), {"frer_excess_copies": 1, "frer_out_of_order": 2, "frer_dead_stream": 2})
 
     def test_frer_restart(self):
         alerts = self.alerts("ids_frer_restart")
-        self.assertEqual([(a.rule, round(a.ts) - 1700000000) for a in alerts], [("attack3", 4), ("attack3", 4)])
+        self.assertEqual([(a.rule, round(a.ts) - 1700000000) for a in alerts], [("frer_out_of_order", 4), ("frer_out_of_order", 4)])
 
     def test_ptp(self):
         alerts = self.alerts("ids_ptp")
         self.assertEqual([(a.rule, round(a.ts) - 1700000000) for a in alerts],
-                         [("ptp1", 3), ("ptp2", 4), ("ptp3", 6), ("ptp3", 7)])
+                         [("ptp_rogue_grandmaster", 3), ("ptp_unannounced_sync", 4), ("ptp_sequence_id", 6), ("ptp_sequence_id", 7)])
 
     def test_srp(self):
         self.assertEqual(self.count("ids_srp"),
-                         {"attack5": 4, "attack6": 2, "attack7": 3, "attack8": 1, "attack9": 1})
+                         {"srp_oversized_request": 4, "srp_bandwidth_jump": 2, "srp_request_burst": 3, "srp_reservation_change": 1, "srp_unused_reservation": 1})
 
 
 if __name__ == "__main__":

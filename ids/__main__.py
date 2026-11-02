@@ -20,8 +20,10 @@ import sys
 import time
 
 from .engine import Engine
-from .ptp_rules import PtpDetector
-from .rules import Config, RuleDetector
+from .config import Config
+from .frer import FrerDetector
+from .ptp import PtpDetector
+from .srp import SrpDetector
 
 LOG_KINDS = {"cb": "cb", "ptp": "ptp", "srp": "srp"}
 
@@ -31,7 +33,7 @@ def build_engine(config_path):
     if config_path:
         with open(config_path) as f:
             config = Config.from_dict(json.load(f))
-    return Engine([RuleDetector(config), PtpDetector(config)])
+    return Engine([FrerDetector(config), SrpDetector(config), PtpDetector(config)])
 
 
 def report(alerts, notify=None):
@@ -119,7 +121,7 @@ def live(args):
 
 def main():
     ap = argparse.ArgumentParser(prog="python3 -m ids", description="TSNZeek intrusion detection: consumes the messages Zeek parsed and raises alerts.")
-    ap.add_argument("--config", help="JSON file overriding the thresholds in ids/rules.py Config")
+    ap.add_argument("--config", help="JSON file overriding the thresholds in ids/config.py Config")
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=9999)
     ap.add_argument("--connect-timeout", type=float, default=30.0, help="seconds to wait for Zeek")
