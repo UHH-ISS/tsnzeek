@@ -1,0 +1,11 @@
+ALERT attack6 ts=1700000003.000000 SRP request with more than two standard deviations difference for bandwidth for stream id 00:00:00:00:00:02/1000. Requested: 4.096e+06 Mean: 2.048e+06
+ALERT attack5 ts=1700000004.000000 Threshold for Interval exceeded for stream 00:00:00:00:00:02/1000: Allowed: 10.0 Requested: 20.0
+ALERT attack5 ts=1700000004.000000 Threshold for MaxFramesPerInterval exceeded for stream 00:00:00:00:00:02/1000: Allowed: 10 Requested: 50
+ALERT attack5 ts=1700000004.000000 Threshold for MaxFrameSize exceeded for stream 00:00:00:00:00:02/1000: Allowed: 1000 Requested: 2000
+ALERT attack6 ts=1700000004.000000 SRP request with more than two standard deviations difference for bandwidth for stream id 00:00:00:00:00:02/1000. Requested: 5000 Mean: 2.73067e+06
+ALERT attack8 ts=1700000005.000000 SRP request for changing an existing resource allocation with config id 00:00:00:00:00:02/1.
+ALERT attack7 ts=1700000005.000000 Too many SRP requests received in short time.
+ALERT attack7 ts=1700000006.000000 Too many SRP requests received in short time.
+ALERT attack5 ts=1700000007.000000 Invalid interval 1/0 requested for stream 00:00:00:00:00:02/1000
+ALERT attack7 ts=1700000007.000000 Too many SRP requests received in short time.
+ALERT attack9 ts=1700000012.000000 For SRP request 00:00:00:00:00:03/9 no FRER packet was received.

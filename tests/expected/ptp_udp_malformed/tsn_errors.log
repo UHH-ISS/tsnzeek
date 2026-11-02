@@ -1,0 +1,9 @@
+{"ts":1700000000.0,"src":"192.0.2.1","dst":"224.0.1.129","uid":"CJKFoj4bpHEhTeaRoj","protocol":"PTP","reason":"reserved messageType 0x4"}
+{"ts":1700000001.0,"src":"192.0.2.1","dst":"224.0.1.129","uid":"CRdT6w4PA64qWKmBk3","protocol":"PTP","reason":"expecting 4 bytes for unpacking value (0 bytes available)"}
+{"ts":1700000002.0,"src":"192.0.2.1","dst":"224.0.1.129","uid":"Cj5C653qaTXsxKtqD2","protocol":"PTP","reason":"expected 8 bytes (0 available)"}
+{"ts":1700000003.0,"src":"192.0.2.1","dst":"224.0.1.129","uid":"CJioLj2aEkGc9R3T0b","protocol":"PTP","reason":"expected 4 bytes (1 available)"}
+{"ts":1700000004.0,"src":"192.0.2.1","dst":"224.0.1.129","uid":"CcvuMe3KIDgdxGsNCd","protocol":"PTP","reason":"2 octets beyond messageLength 44"}
+{"ts":1700000005.0,"src":"192.0.2.1","dst":"224.0.1.129","uid":"CpuDPN1X7c0rKhM3Ik","protocol":"PTP","reason":"messageLength 9999 exceeds the PTP payload of 44 octets"}
+{"ts":1700000006.0,"src":"192.0.2.1","dst":"224.0.1.129","uid":"CRmE1y3QIW6Zmd10g1","protocol":"PTP","reason":"messageLength 10 below the minimum 44 for messageType 0x0"}
+{"ts":1700000006.0,"src":"192.0.2.1","dst":"224.0.1.129","uid":"CRmE1y3QIW6Zmd10g1","protocol":"PTP","reason":"34 octets beyond messageLength 10"}
+{"ts":1700000007.0,"src":"192.0.2.1","dst":"224.0.1.129","uid":"CIrGew2SfruONAsgA8","protocol":"PTP","reason":"expected 500 bytes (2 available)"}
