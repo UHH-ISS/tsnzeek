@@ -1,6 +1,6 @@
 # -----------------------------------------------------------
 #
-#  scapy-attacks.py
+#  attacks.py
 #
 # This file starts a scapy instance and provides functions to run attacks using FRER and SRP
 #
@@ -8,15 +8,18 @@
 # Released under GNU Public License (GPL)
 # email robin.schenderlein@studium.uni-hamburg.de
 # -----------------------------------------------------------
+import os
 import random
+import sys
 import time
 
 import numpy as np
 from scapy.layers.l2 import Dot1Q
 from scapy.sendrecv import sendp
 
-from CB import CB
-from SRP import *
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "layers"))
+from cb import CB  # noqa: E402
+from srp import *  # noqa: E402,F401,F403
 
 from scapy.all import wrpcap
 
@@ -121,21 +124,21 @@ def send_srp(srp_frame, interface_name="h2-eth0"):
 
 
 def list_attacks():
-    print(attack1.__doc__)
-    print(attack2.__doc__)
-    print(attack3.__doc__)
-    print(attack4.__doc__)
-    print(attack5.__doc__)
-    print(attack6.__doc__)
-    print(attack7.__doc__)
-    print(attack8.__doc__)
-    print(attack9.__doc__)
+    print(frer_excess_copies.__doc__)
+    print(frer_timing_jitter.__doc__)
+    print(frer_out_of_order.__doc__)
+    print(frer_dead_stream.__doc__)
+    print(srp_oversized_request.__doc__)
+    print(srp_bandwidth_jump.__doc__)
+    print(srp_request_burst.__doc__)
+    print(srp_reservation_change.__doc__)
+    print(srp_unused_reservation.__doc__)
 
 
 # FRER attacks:
 
-def attack1(interface_name="h2-eth0"):
-    """attack1 - Send more frames for compound stream than member streams.
+def frer_excess_copies(interface_name="h2-eth0"):
+    """frer_excess_copies - Send more frames for compound stream than member streams.
     :param interface_name: Optional interface name, that should be used to send a frame"""
     nr_of_msgs = 3
     global sequence_nr
@@ -165,8 +168,8 @@ def send_cb_timed(jitter, first_delay, delays, start_time, interface_name):
     time.sleep(1 - ((time.time() - start_time) % 1))  # schedule close as possible to 1 sec
 
 
-def attack2(transmission_latencies=None, jitter=None, changing_packet=0, delta=0, interface_name="h2-eth0"):
-    """attack2 - Sends a flow of FRER packets, but one packet has a change in inter-arrival time.
+def frer_timing_jitter(transmission_latencies=None, jitter=None, changing_packet=0, delta=0, interface_name="h2-eth0"):
+    """frer_timing_jitter - Sends a flow of FRER packets, but one packet has a change in inter-arrival time.
         :param transmission_latencies:List of latencies for each packet
         :param jitter: Jitter for the talker
         :param changing_packet: the paket in transmission_latencies that should get changed
@@ -190,8 +193,8 @@ def attack2(transmission_latencies=None, jitter=None, changing_packet=0, delta=0
         send_cb_timed(jitter, transmission_latencies[0], delays, start_time, interface_name)
 
 
-def attack3(delta=50, interface_name="h2-eth0"):
-    """attack3 - Sends a continuous flow of FRER packets, but one packet is out of order.
+def frer_out_of_order(delta=50, interface_name="h2-eth0"):
+    """frer_out_of_order - Sends a continuous flow of FRER packets, but one packet is out of order.
     :param interface_name: Optional interface name, that should be used to send a frame.
     :param delta: Optional offset for the out-of-order packet."""
     global sequence_nr
@@ -211,8 +214,8 @@ def attack3(delta=50, interface_name="h2-eth0"):
         time.sleep(1)
 
 
-def attack4(interface_name="h2-eth0"):
-    """attack4 - Sends multiple member stream, belonging to the same compound stream.
+def frer_dead_stream(interface_name="h2-eth0"):
+    """frer_dead_stream - Sends multiple member stream, belonging to the same compound stream.
     Every 5 seconds a stream will be dropped.
     :param interface_name: Optional interface name, that should be used to send a frame"""
     global sequence_nr
@@ -231,9 +234,9 @@ def attack4(interface_name="h2-eth0"):
 
 # SRP attacks
 
-def attack5(interval_numerator=360, interval_denominator=1, max_frames_per_interval=65535, max_frame_size=65535):
+def srp_oversized_request(interval_numerator=360, interval_denominator=1, max_frames_per_interval=65535, max_frame_size=65535):
     # Used for violating SRP resource allocation restricted by a threshold.
-    """attack5 - Sends a single SRP request.
+    """srp_oversized_request - Sends a single SRP request.
         :param interval_numerator: Together with interval_denominator builds an interval in seconds
         :param interval_denominator: Together with interval_numerator builds an interval in seconds
         :param max_frames_per_interval: Max. frames per interval
@@ -245,12 +248,12 @@ def attack5(interval_numerator=360, interval_denominator=1, max_frames_per_inter
                               max_frame_size=max_frame_size))
 
 
-# Attack 6 - Logging SRP resource allocation deviating from previous allocations so much
+# srp_bandwidth_jump - Logging SRP resource allocation deviating from previous allocations so much
 # SRP handles mostly requests and answers. Done
-def attack6(interval_numerator=10, interval_denominator=1, max_frames_per_interval=1, max_frame_size=200,
+def srp_bandwidth_jump(interval_numerator=10, interval_denominator=1, max_frames_per_interval=1, max_frame_size=200,
             interval_numerator_atk=10, interval_denominator_atk=1, max_frames_per_interval_atk=1,
             max_frame_size_atk=300, ):
-    """attack6 - Sends 10  SRP request. The first five with max_frame_size * 2. The last five with max_frame_size / 2.
+    """srp_bandwidth_jump - Sends 10  SRP request. The first five with max_frame_size * 2. The last five with max_frame_size / 2.
         Followed by another SRP request with different values.
             :param interval_numerator: Together with interval_denominator builds an interval in seconds. Used to set a
             baseline.
@@ -284,7 +287,7 @@ def attack6(interval_numerator=10, interval_denominator=1, max_frames_per_interv
                               unique_id=300))
 
 
-def attack7(nr_of_requests=10, time_window=10):
+def srp_request_burst(nr_of_requests=10, time_window=10):
     """ Sends many SRP requests for different streams.
     :param nr_of_requests: The amount of requests that should get sent.
     :param time_window: The time frame in which the requests get sent."""
@@ -293,10 +296,10 @@ def attack7(nr_of_requests=10, time_window=10):
         time.sleep(time_window / nr_of_requests)
 
 
-def attack8(interval_numerator=1, interval_denominator=1, max_frames_per_interval=1, max_frame_size=800,
+def srp_reservation_change(interval_numerator=1, interval_denominator=1, max_frames_per_interval=1, max_frame_size=800,
             interval_numerator_changed=1, interval_denominator_changed=1, max_frames_per_interval_changed=1,
             max_frame_size_changed=800):
-    """attack5 - Sends two SRP requests. The second requests tries to introduce changes after the first SRP got
+    """srp_reservation_change - Sends two SRP requests. The second requests tries to introduce changes after the first SRP got
     accepted.
     requests. One requests higher values. The other lower values.
             :param interval_numerator: Together with interval_denominator builds an interval in seconds
@@ -322,7 +325,7 @@ def attack8(interval_numerator=1, interval_denominator=1, max_frames_per_interva
                               unique_id=unique_id))
 
 
-def attack9():
+def srp_unused_reservation():
     """ Sends a single SRP reservation and waits until timeout occurs """
     # No need to fill out complete message, as it just creates an entry for streamID config
     send_srp(create_srp_frame())

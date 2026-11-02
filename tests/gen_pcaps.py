@@ -4,10 +4,10 @@ import os
 import struct
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scapy"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scapy", "layers"))
 
 from scapy.all import IP, IPv6, UDP, Dot1Q, Ether, Raw, raw, wrpcap  # noqa: E402
-import SRP as srp  # noqa: E402  (scapy/SRP.py)
+import srp  # noqa: E402  (scapy/layers/srp.py)
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pcaps")
 SRC, DST = "00:00:00:00:00:01", "00:00:00:00:00:02"
@@ -151,12 +151,12 @@ def write_ids_cases():
         (1, ptp(ptp_msg(0x0, timestamp(), seq=2))), (1.1, ptp(ptp_msg(0x8, timestamp(), seq=2))),
         (1.2, ptp_udp(ptp_msg(0x0, timestamp(), seq=2, transport=0))),     # UDP counts separately from Ethernet
         (2, ptp(ptp_msg(0x0, timestamp(), seq=3))), (2.1, ptp(ptp_msg(0x8, timestamp(), seq=3))),
-        (3, ptp(ptp_msg(0xB, announce_body(priority1=1, clock_class=6, identity=ROGUE), seq=1, clock=ROGUE))),   # ptp1
+        (3, ptp(ptp_msg(0xB, announce_body(priority1=1, clock_class=6, identity=ROGUE), seq=1, clock=ROGUE))),   # ptp_rogue_grandmaster
         (3.5, ptp(ptp_msg(0xB, announce_body(), seq=2))),                  # the real master again: a backup, no alert
-        (4, ptp(ptp_msg(0x0, timestamp(), seq=1, clock=UNKNOWN))),         # ptp2
+        (4, ptp(ptp_msg(0x0, timestamp(), seq=1, clock=UNKNOWN))),         # ptp_unannounced_sync
         (5, ptp(ptp_msg(0x0, timestamp(), seq=4))),
-        (6, ptp(ptp_msg(0x0, timestamp(), seq=4))),                        # ptp3: repeated
-        (7, ptp(ptp_msg(0x0, timestamp(), seq=9))),                        # ptp3: skipped 5-8
+        (6, ptp(ptp_msg(0x0, timestamp(), seq=4))),                        # ptp_sequence_id: repeated
+        (7, ptp(ptp_msg(0x0, timestamp(), seq=9))),                        # ptp_sequence_id: skipped 5-8
         (8, ptp(ptp_msg(0x0, timestamp(), seq=10))),
     ]
     write("ids_ptp.pcap", [p for _, p in ptp_pkts], [t for t, _ in ptp_pkts])
@@ -182,10 +182,10 @@ def write_ids_cases():
 
     srp_pkts = [
         (0, talker_msg(1)), (1, talker_msg(2)), (2, talker_msg(3)),          # three equal requests
-        (3, talker_msg(4, frames_=4)),                                       # twice the bandwidth: attack6
+        (3, talker_msg(4, frames_=4)),                                       # twice the bandwidth: srp_bandwidth_jump
         (4, talker_msg(5, num=20, den=1, frames_=50, size=2000)),            # all thresholds exceeded
-        (5, talker_msg(1)),                                                  # changes reservation 1: attack8
-        (6, talker_msg(9, mac="00:00:00:00:00:03")),                         # no FRER traffic: attack9
+        (5, talker_msg(1)),                                                  # changes reservation 1: srp_reservation_change
+        (6, talker_msg(9, mac="00:00:00:00:00:03")),                         # no FRER traffic: srp_unused_reservation
         (7, talker_msg(10, den=0)),                                          # invalid interval
     ]
     # FRER data (two copies each) for the first stream only, so that exactly the reservation of ...:03
