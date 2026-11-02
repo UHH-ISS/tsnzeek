@@ -4,7 +4,7 @@
 #
 # Optionally flush the logs regularly so that `tail -f` shows them as they happen (live demos).
 #
-# (C) 2024 Ahmed Abdulfattah, Berlin, Germany
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Released under GNU Public License (GPL)
 # -----------------------------------------------------------
 

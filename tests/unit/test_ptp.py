@@ -1,3 +1,5 @@
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Unit tests of the PTP rules on hand-made ptp.log records (no Zeek, no Broker needed)."""
 import os
 import sys

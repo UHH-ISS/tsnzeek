@@ -5,6 +5,7 @@
 # IEEE 1588 / IEEE 802.1AS (g)PTP: log and forward PTP messages.
 #
 # (C) 2024 Ahmed Abdulfattah, Berlin, Germany
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Released under GNU Public License (GPL)
 # -----------------------------------------------------------
 

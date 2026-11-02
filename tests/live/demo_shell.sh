@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Shell for a demo window on a Mininet host: `tsn <command>` sends frames from this host's interface.
 #   demo_shell.sh <interface>
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"

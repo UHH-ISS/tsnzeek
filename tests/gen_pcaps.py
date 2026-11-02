@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Generate the synthetic pcaps used by tests/run.sh (needs scapy: .venv/bin/python tests/gen_pcaps.py)."""
 import os
 import struct
@@ -81,7 +83,7 @@ def srp_frame(payload, vlan=1000):
 
 
 def srp_samples():
-    """The frames of scapy/srp_sample, plus IPv6/second-interface variants."""
+    """The frames of scapy/samples/srp_*.pcap, plus IPv6/second-interface variants."""
     i1 = srp.InterfaceID(InterfaceName="thisIsAnInterfaceName", MacAddress="00:00:00:00:00:0a")
     i2 = srp.InterfaceID(InterfaceName="thisIsAnotherInterfaceName", MacAddress="00:00:00:00:00:0b")
     stream = srp.StreamID(MacAddress="00:00:00:00:00:02", UniqueID=7)

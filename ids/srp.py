@@ -14,6 +14,7 @@
 # The last rule also reads the records of cb.log: a reservation is used when frames of its stream arrive.
 #
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Released under GNU Public License (GPL)
 # -----------------------------------------------------------
 

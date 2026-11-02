@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # End-to-end test of the IDS: Zeek replays tests/pcaps/ids_*.pcap and publishes over Broker, `python3 -m ids`
 # analyses it, and the alerts are compared with tests/expected/<case>/alerts.txt. Every alert must also
 # come back to Zeek as a Possible_Attack notice.

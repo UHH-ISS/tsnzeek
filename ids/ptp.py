@@ -10,7 +10,7 @@
 #
 # The hosts of a test network can share one clock, so no rule compares timestamps with the local time.
 #
-# (C) 2024 Ahmed Abdulfattah, Berlin, Germany
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Released under GNU Public License (GPL)
 # -----------------------------------------------------------
 

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Follow Zeek's JSON logs in a directory and print one readable line per record, like `tail -f` for TSN.
 
     watch.py <log directory>

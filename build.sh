@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Compile the Spicy grammars into build/spicy/tsn.hlto, and run the unit tests after a compilation.
 #
 #   ./build.sh             compile if a grammar changed, then run tests/unit

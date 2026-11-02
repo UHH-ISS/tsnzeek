@@ -5,6 +5,7 @@
 # The thresholds of all rules. `python3 -m ids --config thresholds.json` overrides any of them by name.
 #
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Released under GNU Public License (GPL)
 # -----------------------------------------------------------
 

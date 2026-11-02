@@ -1,3 +1,5 @@
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Run Zeek over tests/pcaps/ids_*.pcap and check which rules the resulting logs trigger.
 
 Needs a Zeek install with Spicy (ZEEK_PREFIX, default /opt/zeek); the tests are skipped without one. These are the

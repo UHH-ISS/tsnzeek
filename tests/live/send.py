@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """Send frames from the interface of the Mininet host this runs on (needs Scapy: the venv's Python).
 
     send.py <command> [interface] [options]       interface defaults to $IFACE; `send.py commands` lists the commands

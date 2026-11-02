@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
+
 """A hub in user space: every frame that arrives on one port is sent out of all the others.
 
     userhub.py <interface> <interface> ...

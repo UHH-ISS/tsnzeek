@@ -5,6 +5,7 @@
 #  cb.py --- IEEE 802.1CB Frame Replication and Elimination for Reliability (FRER) support for Scapy
 #
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
+# (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Released under GNU Public License (GPL)
 # email robin.schenderlein@studium.uni-hamburg.de
 # -----------------------------------------------------------
