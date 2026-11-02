@@ -35,6 +35,7 @@ done
 id tsnzeek >/dev/null 2>&1 || useradd --system --no-create-home --shell /usr/sbin/nologin tsnzeek
 install -d -o tsnzeek -g tsnzeek -m 0750 /var/log/tsnzeek
 install -d -m 0755 /etc/tsnzeek
+[[ -f /etc/tsnzeek/ids.json ]] || install -m 0644 "$HOME_DIR/deploy/ids.json" /etc/tsnzeek/ids.json
 [[ -f /etc/tsnzeek/tsnzeek.env ]] || install -m 0644 "$HOME_DIR/deploy/tsnzeek.env" /etc/tsnzeek/tsnzeek.env
 install -m 0644 "$HOME_DIR/deploy/logrotate.conf" /etc/logrotate.d/tsnzeek
 for u in "${UNITS[@]}"; do

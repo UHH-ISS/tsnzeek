@@ -52,7 +52,7 @@ cannot run, for example in a shell without a proper `TERM`. It has nothing to do
 | File | Content | Without it |
 | --- | --- | --- |
 | `/etc/tsnzeek/tsnzeek.env` | interface and optional environment (`KEY=value`) | `install.sh` writes one with `eth0` |
-| `/etc/tsnzeek/ids.json` | IDS thresholds, the keys of `Config` in [`ids/config.py`](../ids/config.py) | the defaults of `config.py` |
+| `/etc/tsnzeek/ids.json` | IDS thresholds, the keys of `Config` in [`ids/config.py`](../ids/config.py); `install.sh` writes one with all keys at their defaults (`deploy/ids.json`), edit the values you want to change, and delete a key to get its default | the defaults of `config.py` |
 
 The IDS looks for its thresholds in this order: `--config FILE`, `$TSNZEEK_CONFIG`, `/etc/tsnzeek/ids.json`, the defaults.
 Restart the IDS after a change: `sudo systemctl restart tsnzeek-ids`. The Broker address of Zeek can be moved with
