@@ -23,6 +23,28 @@ sudo systemctl start tsnzeek.target
 `/etc/systemd/system/` with the path of this checkout (it has to stay where it is). `ZEEK_PREFIX` (default `/opt/zeek`)
 selects another Zeek. `sudo deploy/install.sh --uninstall` removes the units again; configuration and logs stay.
 
+## Check that it runs
+
+```sh
+systemctl --no-pager status tsnzeek-zeek tsnzeek-ids      # both "active (running)"
+journalctl --no-pager -u tsnzeek-ids -n 20                # "Connected to Zeek"
+ls /var/log/tsnzeek                                       # cb.log, ptp.log, srp.log ... as frames arrive
+tail -f /var/log/tsnzeek/alerts.log                       # the alerts
+```
+
+`--no-pager` avoids the warning `terminal is not fully functional`, which `systemctl` prints when its pager (`less`)
+cannot run, for example in a shell without a proper `TERM`. It has nothing to do with TSNZeek; `export SYSTEMD_PAGER=` turns the pager off for the session.
+
+## Day to day
+
+| Task | Command |
+| --- | --- |
+| stop / start / restart both | `sudo systemctl stop\|start\|restart tsnzeek.target` |
+| change the interface | edit `/etc/tsnzeek/tsnzeek.env`, `sudo systemctl restart tsnzeek-zeek` |
+| change thresholds | edit `/etc/tsnzeek/ids.json`, `sudo systemctl restart tsnzeek-ids` |
+| not at boot any more | `sudo systemctl disable tsnzeek.target` |
+| remove the units | `sudo deploy/install.sh --uninstall` |
+
 ## Configuration
 
 | File | Content | Without it |
@@ -44,3 +66,11 @@ Restart the IDS after a change: `sudo systemctl restart tsnzeek-ids`. The Broker
 | `journalctl -u tsnzeek-zeek` | errors of Zeek itself |
 
 Outside a service the alert file is `--alert-log FILE` or `$TSNZEEK_ALERT_LOG`; without either, alerts go to the console only.
+
+## Troubleshooting
+
+- `tsnzeek-zeek` fails at once: `journalctl -u tsnzeek-zeek -n 30`. A wrong interface name in `tsnzeek.env`, or a grammar that was not built (`./build.sh`), are the usual causes.
+- No `*.log` files: there was no TSN traffic yet, or Zeek sees the wrong interface (`ip -br link`). Zeek creates a log when its first row is written.
+- `tsnzeek-ids` says `Lost Zeek, waiting for it to come back`: Zeek restarted or stopped; the IDS reconnects by itself.
+- Nothing in `alerts.log` although you attack: check that the IDS was connected (`Connected to Zeek`) before the traffic, and that the thresholds in `/etc/tsnzeek/ids.json` are not too high.
+- The checkout moved: run `install.sh` again, the units contain its path.
