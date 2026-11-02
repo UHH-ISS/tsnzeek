@@ -1,6 +1,8 @@
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 
 """Unit tests of the engine and the configuration."""
+import json
+import os
 import unittest
 
 import helpers  # noqa: F401  (puts the repository on sys.path)
@@ -9,6 +11,12 @@ from ids.engine import Detector, Engine
 
 
 class EngineTest(unittest.TestCase):
+    def test_deployed_config_example_is_the_defaults(self):
+        # deploy/ids.json is what install.sh puts in /etc/tsnzeek; it must list every key with its default
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "deploy", "ids.json")
+        with open(path) as f:
+            self.assertEqual(Config.from_dict(json.load(f)), Config())
+
     def test_config_rejects_unknown_keys(self):
         with self.assertRaises(ValueError):
             Config.from_dict({"nr_of_members": 2})

@@ -1,0 +1,16 @@
+{
+  "frer_history_size": 5,
+  "nr_of_member_streams": 5,
+  "timeout": 60.0,
+  "recovery_reset_time": 10.0,
+  "interval_threshold": 10.0,
+  "max_frames_per_interval_threshold": 10,
+  "max_frame_size_threshold": 1000,
+  "nr_of_requests_threshold": 10,
+  "time_window_threshold": 10.0,
+  "srp_bandwidth_history_len": 10,
+  "ptp_gm_timeout": 10.0,
+  "ptp_learning_time": 5.0,
+  "ptp_seq_gap_tolerance": 0,
+  "ptp_seq_reset_time": 10.0
+}
