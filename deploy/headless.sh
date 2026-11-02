@@ -10,6 +10,7 @@
 # control.json, the channel to the web interface).
 # Defaults: interface $TSNZEEK_INTERFACE (else the first non-loopback one), directory $TSNZEEK_DIR (else ~/tsnzeek),
 # IDS config $TSNZEEK_CONFIG (else /etc/tsnzeek/ids.json if it exists, else the defaults).
+# Inside a Mininet host (the CLI runs as root): `mon deploy/headless.sh start -i mon-eth0`; see tests/live/README.md.
 # Capturing needs root: the script uses sudo for Zeek unless you are root or Zeek has been given the capabilities
 # (sudo setcap cap_net_raw,cap_net_admin=eip /opt/zeek/bin/zeek).
 set -euo pipefail
@@ -17,7 +18,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZEEK_PREFIX="${ZEEK_PREFIX:-/opt/zeek}"
 IFACE="${TSNZEEK_INTERFACE:-}"
-DIR="${TSNZEEK_DIR:-$HOME/tsnzeek}"
+# Started as root through sudo (also from the Mininet CLI, which runs as root): use the home of the user who ran sudo, and
+# give the directory to that user, so that the web interface, which runs as that user, can write control.json.
+OWNER=""
+[[ $EUID -eq 0 && -n "${SUDO_USER:-}" && "$SUDO_USER" != root ]] && OWNER="$SUDO_USER"
+USER_HOME="$HOME"
+[[ -n "$OWNER" ]] && USER_HOME="$(getent passwd "$OWNER" | cut -d: -f6)"
+DIR="${TSNZEEK_DIR:-$USER_HOME/tsnzeek}"
 CONFIG="${TSNZEEK_CONFIG:-}"
 
 cmd="${1:-}"; [[ $# -gt 0 ]] && shift
@@ -59,11 +66,14 @@ start)
 	[[ -f "$ROOT/build/spicy/tsn.hlto" ]] || { echo "build first: $ROOT/build.sh" >&2; exit 1; }
 	[[ -x "$ZEEK_PREFIX/bin/zeek" ]] || { echo "no Zeek in $ZEEK_PREFIX (set ZEEK_PREFIX)" >&2; exit 1; }
 	if [[ -z "$IFACE" ]]; then
-		IFACE="$(ls /sys/class/net | grep -v '^lo$' | head -1 || true)"
+		IFACE="$(ip -o link show | awk -F': ' '{print $2}' | sed 's/@.*//' | grep -v '^lo$' | head -1 || true)"
 		[[ -n "$IFACE" ]] || { echo "no interface found; use -i" >&2; exit 1; }
 	fi
-	[[ -d "/sys/class/net/$IFACE" ]] || { echo "no such interface: $IFACE (ip -br link)" >&2; exit 1; }
-	mkdir -p "$LOGS" "$RUN"
+	# `ip link` shows the interfaces of the network namespace this runs in (a Mininet host: `mon deploy/headless.sh ...`);
+	# /sys/class/net would show those of the namespace sysfs was mounted in.
+	ip link show dev "$IFACE" >/dev/null 2>&1 || { echo "no such interface: $IFACE (ip -br link)" >&2; exit 1; }
+	mkdir -p "$LOGS" "$RUN" "$DIR/control"
+	[[ -n "$OWNER" ]] && chown -R "$OWNER": "$DIR"
 
 	ids_args=(--service --alert-log "$LOGS/alerts.log" --control-dir "$DIR/control")
 	[[ -n "$CONFIG" ]] && ids_args+=(--config "$CONFIG")
