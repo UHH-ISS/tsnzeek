@@ -1,8 +1,8 @@
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
-# Zeek with the TSN analyzers, capturing on $TSNZEEK_INTERFACE (/etc/tsnzeek/tsnzeek.env).
+# The monitor: Zeek with the TSN analyzers, capturing on $TSNZEEK_INTERFACE (/etc/tsnzeek/tsnzeek.env).
 # @TSNZEEK_HOME@ and @ZEEK_PREFIX@ are filled in by deploy/install.sh.
 [Unit]
-Description=TSNZeek: Zeek with the FRER, SRP and PTP analyzers
+Description=TSNZeek monitor: Zeek with the FRER, SRP and PTP analyzers
 Documentation=file:@TSNZEEK_HOME@/deploy/README.md
 After=network.target
 PartOf=tsnzeek.target
