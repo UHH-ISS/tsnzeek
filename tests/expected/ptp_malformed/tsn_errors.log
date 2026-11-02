@@ -1,0 +1,7 @@
+{"ts":1700000000.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"reserved messageType 0x4"}
+{"ts":1700000001.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"reserved messageType 0xf"}
+{"ts":1700000002.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"expecting 4 bytes for unpacking value (0 bytes available)"}
+{"ts":1700000003.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"expected 8 bytes (0 available)"}
+{"ts":1700000005.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"expected 500 bytes (2 available)"}
+{"ts":1700000006.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"&requires failed: ($$ >= 2)"}
+{"ts":1700000008.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"expecting 4 bytes for unpacking value (3 bytes available)"}

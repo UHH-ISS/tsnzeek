@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# The expected output of the tests is not a log file to ignore
+!tests/expected/**/*.log

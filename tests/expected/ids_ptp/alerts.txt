@@ -1,0 +1,4 @@
+ALERT ptp1 ts=1700000003.000000 Grandmaster deadbeefcafe0001 announces itself in domain 0 with a better clock (priority1 1, class 6) than the current 008063ffff0009ba (priority1 246, class 248); source deadbeefcafe0001
+ALERT ptp2 ts=1700000004.000000 Sync from clock feedfacefeed0002 in domain 0, which has not announced itself (masters: 008063ffff0009ba, deadbeefcafe0001)
+ALERT ptp3 ts=1700000006.000000 Sync of 008063ffff0009ba/1 (ethernet, domain 0): sequenceId 4 repeated
+ALERT ptp3 ts=1700000007.000000 Sync of 008063ffff0009ba/1 (ethernet, domain 0): sequenceId jumped from 4 to 9 (4 missing)

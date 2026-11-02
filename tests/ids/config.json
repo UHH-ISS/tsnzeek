@@ -1,0 +1,8 @@
+{
+	"nr_of_member_streams": 2,
+	"timeout": 5,
+	"srp_bandwidth_history_len": 3,
+	"nr_of_requests_threshold": 5,
+	"time_window_threshold": 10,
+	"recovery_reset_time": 3
+}

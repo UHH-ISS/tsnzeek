@@ -1,0 +1,9 @@
+{"ts":1700000000.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:04","vlan":1000,"protocol":"SRP","reason":"unsupported first TLV type 9"}
+{"ts":1700000001.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:04","vlan":1000,"protocol":"SRP","reason":"expecting 4 bytes for unpacking value (3 bytes available)"}
+{"ts":1700000002.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:04","vlan":1000,"protocol":"SRP","reason":"expecting 1 bytes for unpacking value (0 bytes available)"}
+{"ts":1700000003.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:04","vlan":1000,"protocol":"SRP","reason":"&size amount not consumed: expected 9 bytes, but got 8 bytes"}
+{"ts":1700000004.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:04","vlan":1000,"protocol":"SRP","reason":"expected 6 bytes (3 available)"}
+{"ts":1700000005.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:04","vlan":1000,"protocol":"SRP","reason":"&size amount not consumed: expected 200 bytes, but got 41 bytes"}
+{"ts":1700000006.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:04","vlan":1000,"protocol":"SRP","reason":"&requires failed: ($$ >= 6)"}
+{"ts":1700000007.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:04","vlan":1000,"protocol":"SRP","reason":"expected 26 bytes (23 available)"}
+{"ts":1700000008.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:04","vlan":1000,"protocol":"SRP","reason":"expecting 1 bytes for unpacking value (0 bytes available)"}

@@ -1,0 +1,5 @@
+{"ts":1700000002.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"8 octets beyond messageLength 44"}
+{"ts":1700000003.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"messageLength 9999 exceeds the PTP payload of 44 octets"}
+{"ts":1700000004.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"messageLength 10 below the minimum 44 for messageType 0x0"}
+{"ts":1700000005.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"messageLength 40 below the minimum 64 for messageType 0xb"}
+{"ts":1700000005.0,"src":"00:00:00:00:00:01","dst":"01:80:c2:00:00:0e","protocol":"PTP","reason":"24 octets beyond messageLength 40"}

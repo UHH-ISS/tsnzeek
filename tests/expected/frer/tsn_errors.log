@@ -1,0 +1,2 @@
+{"ts":1700000006.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:02","vlan":150,"protocol":"FRER","reason":"expecting 2 bytes for unpacking value (1 byte available)"}
+{"ts":1700000007.0,"src":"00:00:00:00:00:01","dst":"00:00:00:00:00:02","vlan":150,"protocol":"FRER","reason":"expecting 2 bytes for unpacking value (1 byte available)"}
