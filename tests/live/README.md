@@ -5,6 +5,18 @@ Zeek and the IDS run on the monitor of an emulated Mininet network (below); fram
 project's venv with Scapy; `ptp4l` (linuxptp) and `xterm` for the real-PTP and window parts. Build the grammars first,
 as yourself: `./build.sh`.
 
+## Step by step: the demo
+
+1. **Install** (once): `sudo apt-get install mininet openvswitch-switch tcpdump xterm linuxptp python3-venv`, then `python3 -m venv .venv && .venv/bin/pip install scapy` in the repository.
+2. **Build** as yourself, not with sudo, so that `build/` does not become root-owned: `./build.sh`.
+3. **Allow root to open windows** on your display (once per login): `xhost +si:localuser:root`. Without a display, use `--cli` below.
+4. **Start** the network, Zeek, the IDS and the windows: `sudo -E python3 tests/live/run_live.py --demo` (add `--ptp` for real `ptp4l`). Four windows open in the corners of the screen; this terminal becomes the Mininet CLI.
+5. **Legit traffic**: in the **h1** window run `tsn ptp_loop` (or `tsn stream` for FRER). The **Zeek logs** window fills with one line per message; the **IDS alerts** window stays empty.
+6. **An attack**: in the **attacker** window run `tsn ptp_rogue_grandmaster`. Within a moment the IDS window shows `ALERT ptp_rogue_grandmaster ...` and the Zeek window shows the notice `TSN::Possible_Attack`. `tsn commands` lists the others (table below).
+7. **Stop**: Ctrl-C a running `tsn` command, then type `exit` in the Mininet CLI. Everything is stopped; the logs stay under the `/tmp/tsnzeek-live-*` directory printed at the end. After a crash run `sudo mn -c`.
+
+No display (SSH, a server): `sudo python3 tests/live/run_live.py --cli` starts the same network, Zeek and IDS without windows and prints where their output goes (`/tmp/tsnzeek-live-*/cli`, `tail -f` the logs there) and a sample command. Send frames from the Mininet CLI, e.g. `h1 .venv/bin/python tests/live/send.py frer_mixed h1-eth0`; `exit` stops everything.
+
 ## Demo
 
 ```sh

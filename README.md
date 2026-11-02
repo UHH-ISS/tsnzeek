@@ -77,10 +77,56 @@ sudo ZEEK_SPICY_MODULE_PATH=build/spicy /opt/zeek/bin/zeek -C -i <interface> spi
 PYTHONPATH=/opt/zeek/lib/zeek/python python3 -m ids [--config thresholds.json]
 ```
 
-To run both as systemd services (optional), see [`deploy/`](deploy/README.md).
+For a run without a terminal window, see [Headless](#headless-no-terminal-window-no-service) below; for a permanent installation
+as systemd services (optional), see [`deploy/`](deploy/README.md).
 
 Alerts appear on the IDS console and come back to Zeek as `Possible_Attack` entries of `notice.log`. To run the rules on
 logs of an earlier run, without Zeek or Broker: `python3 -m ids --replay cb.log srp.log ptp.log`.
+
+## Headless (no terminal window, no service)
+
+Zeek and the IDS in the background of a server or an SSH session, started by hand. Nothing is installed; stop them
+when you are done. (For something that starts at boot, use the [systemd services](deploy/README.md).)
+
+1. Build once: `./build.sh`
+2. Pick the interface (`ip -br link`) and a directory for the logs:
+
+   ```sh
+   IFACE=eth0
+   LOGS=$HOME/tsnzeek-logs && mkdir -p "$LOGS"
+   ```
+
+3. Start the IDS first. It waits for Zeek, so the order does not matter for correctness, but it must be up before the
+   traffic you want checked. The alerts go to `alerts.log` (and the console output to `ids.out`):
+
+   ```sh
+   PYTHONPATH=/opt/zeek/lib/zeek/python setsid nohup python3 -m ids --service \
+       --alert-log "$LOGS/alerts.log" >"$LOGS/ids.out" 2>&1 &
+   echo $! >"$LOGS/ids.pid"
+   ```
+
+   Add `--config my-thresholds.json` to change thresholds (the keys are the fields of `Config` in `ids/config.py`).
+
+4. Start Zeek. Capturing needs root (or `sudo setcap cap_net_raw,cap_net_admin=eip /opt/zeek/bin/zeek` once, then no `sudo`).
+   It writes its logs into the current directory:
+
+   ```sh
+   cd "$LOGS" && sudo ZEEK_SPICY_MODULE_PATH="$OLDPWD/build/spicy" setsid nohup /opt/zeek/bin/zeek -C -i "$IFACE" \
+       "$OLDPWD/spicy/scripts" LogAscii::use_json=T TSN::log_flush_interval=1sec >zeek.out 2>&1 &
+   cd -
+   ```
+
+5. Check that both run and watch the traffic:
+
+   ```sh
+   cat "$LOGS/ids.out"                       # "Connected to Zeek"
+   tail -f "$LOGS"/cb.log "$LOGS"/ptp.log "$LOGS"/srp.log   # one JSON line per message
+   tail -f "$LOGS/alerts.log" "$LOGS/notice.log"            # the alerts
+   ```
+
+6. Stop: `kill "$(cat "$LOGS/ids.pid")"; sudo pkill -x zeek` (Zeek finishes the logs on SIGTERM).
+
+`TSN::wait_for_peer` is for pcaps run together with the IDS; a live run does not need it.
 
 ## Testing
 
@@ -89,7 +135,7 @@ python3 -m unittest discover -s tests/unit   # rules and pcaps
 tests/run.sh && tests/run_ids.sh             # Zeek logs and Zeek + IDS end to end
 ```
 
-The live demo in Mininet is described in [tests/live/README.md](tests/live/README.md).
+Step by step guides: [`tests/README.md`](tests/README.md) (the automatic tests) and [`tests/live/README.md`](tests/live/README.md) (the Mininet demo).
 
 ## Citation
 
