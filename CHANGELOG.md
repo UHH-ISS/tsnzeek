@@ -3,6 +3,7 @@
 ## Unreleased
 
 ### Web interface
+- Optional everywhere: `deploy/headless.sh start ... -w [-p PORT]` starts it with the monitor and the IDS (`stop` and `status` handle it), `sudo deploy/install.sh --with-web` installs `tsnzeek-web.service` (same user as the IDS, `127.0.0.1:8000`). Without these nothing of it runs.
 - `web/`: a small Django app (no database, `127.0.0.1` only) with the tabs Overview (connection, messages per second, alerts per rule, tracked FRER streams, SRP reservations and PTP domains, latest alerts), Rules (switch rules on and off), Config (change thresholds) and Logs (live tail of Zeek's logs and the alerts). It reads `state.json` and the logs and writes `control.json`, validated by the code the IDS applies it with. Tests: `python web/manage.py test console`.
 - Rules have stable numbers (1xx FRER, 2xx SRP, 3xx PTP); `control.json` takes a name or a number.
 
@@ -22,6 +23,7 @@
 
 ### Documentation
 - Step-by-step guides: running Zeek and the IDS headless (README), the systemd services with checks, day-to-day commands and troubleshooting (`deploy/README.md`), the automatic tests (`tests/README.md`) and the Mininet demo, with and without a display (`tests/live/README.md`).
+- The four ways to run are each one self-contained guide: the tests (`tests/README.md`), headless with the optional web interface (README), the services with the optional web interface (`deploy/README.md`) and the Mininet demo without it (`tests/live/README.md`).
 - Explain why a plain pcap run needs `TSN::enable_broker=F` (README and `spicy/README.md`).
 
 ### Version upgrades

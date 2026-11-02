@@ -32,7 +32,7 @@ build as in the steps above (plus `.venv/bin/pip install -r web/requirements.txt
    ```
 
    Everything goes to `~/tsnzeek` of **your** user (`logs/`, `run/`, `control/`; the script uses the home of the user who ran `sudo` and gives the directory to that user). Use `-d DIR` for another place, and give `status` and `stop` the same `-d`.
-3. **Web interface** (terminal 2, as yourself, not with sudo): `.venv/bin/python web/manage.py runserver 127.0.0.1:8000`, then open <http://127.0.0.1:8000/>. It finds `~/tsnzeek` by itself. The badges read `IDS: running` and `Zeek: connected`.
+3. **Web interface** (terminal 2, as yourself, not with sudo; not `headless.sh -w` here, which would start it inside the network namespace of `mon`, out of reach of your browser): `.venv/bin/python web/manage.py runserver 127.0.0.1:8000`, then open <http://127.0.0.1:8000/>. It finds `~/tsnzeek` by itself. The badges read `IDS: running` and `Zeek: connected`.
 4. **Traffic** in the Mininet CLI (`&` puts a long-running sender in the background so that the CLI stays usable; `$IFACE` is not set here, so give the interface):
 
    ```
