@@ -17,6 +17,34 @@ as yourself: `./build.sh`.
 
 No display (SSH, a server): `sudo python3 tests/live/run_live.py --cli` starts the same network, Zeek and IDS without windows and prints where their output goes (`/tmp/tsnzeek-live-*/cli`, `tail -f` the logs there) and a sample command. Send frames from the Mininet CLI, e.g. `h1 .venv/bin/python tests/live/send.py frer_mixed h1-eth0`; `exit` stops everything.
 
+## By hand: your own experiments with the web interface
+
+Without `run_live.py`: build the network yourself, run the monitor headless inside the host `mon`, send frames from the
+hosts, and look at the result in the [web interface](../../web/README.md). Everything from the repository root; install and
+build as in the steps above (plus `.venv/bin/pip install -r web/requirements.txt`).
+
+1. **Network** (terminal 1): `sudo python3 tests/live/topo.py` opens the Mininet CLI (`--hub` for real `ptp4l`). The hosts are `h1`, `h2`, `attacker` and `mon`; every frame is mirrored to `mon-eth0`.
+2. **Monitor** in the same CLI, inside `mon` (Zeek has to sit in the namespace of `mon-eth0`; this is why the interface is `mon-eth0` and not `eth0`):
+
+   ```
+   mininet> mon deploy/headless.sh start -i mon-eth0
+   mininet> mon deploy/headless.sh status
+   ```
+
+   Everything goes to `~/tsnzeek` of **your** user (`logs/`, `run/`, `control/`; the script uses the home of the user who ran `sudo` and gives the directory to that user). Use `-d DIR` for another place, and give `status` and `stop` the same `-d`.
+3. **Web interface** (terminal 2, as yourself, not with sudo): `.venv/bin/python web/manage.py runserver 127.0.0.1:8000`, then open <http://127.0.0.1:8000/>. It finds `~/tsnzeek` by itself. The badges read `IDS: running` and `Zeek: connected`.
+4. **Traffic** in the Mininet CLI (`&` puts a long-running sender in the background so that the CLI stays usable; `$IFACE` is not set here, so give the interface):
+
+   ```
+   mininet> h1 .venv/bin/python tests/live/send.py ptp_loop h1-eth0 &
+   mininet> attacker .venv/bin/python tests/live/send.py ptp_rogue_grandmaster attacker-eth0
+   ```
+
+   The web interface shows the messages per second, the PTP domain and, after the attack, the alert (*Overview*, *Logs* `alerts`). Switch the rule off in *Rules* and repeat the attack: no alert. `send.py commands` lists the other commands.
+5. **Stop**: `mininet> mon deploy/headless.sh stop`, Ctrl-C the web interface, `exit` in the CLI (`sudo mn -c` after a crash).
+
+The thresholds are the defaults of `ids/config.py` here (`run_live.py` uses short timeouts from `config.json`); pass `-c tests/live/config.json` to `headless.sh start` for those.
+
 ## Demo
 
 ```sh

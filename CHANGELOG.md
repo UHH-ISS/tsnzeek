@@ -14,6 +14,7 @@
 ### Service
 - Optional systemd services in `deploy/` (monitor and IDS as user `tsnzeek`, `install.sh`, logs in `/var/log/tsnzeek`, daily Zeek log rotation, logrotate for the alert log); TSNZeek still runs without them.
 - IDS: `--service` (waits for Zeek without a time limit and survives Zeek restarts), `--alert-log`, and the config file is looked up in `--config`, `$TSNZEEK_CONFIG`, `/etc/tsnzeek/ids.json`, then the defaults.
+- `deploy/headless.sh` works inside a Mininet host (`mon deploy/headless.sh start -i mon-eth0`): it checks the interface with `ip link` instead of `/sys/class/net` (which shows the other namespace), and when started as root through `sudo` it uses the home of that user and gives the directory to them, so that the web interface can write `control.json`. Guide: `tests/live/README.md`.
 - `deploy/headless.sh start|stop|status`: the monitor (Zeek) and the IDS in the background without a service. Everything lives in one directory, `$TSNZEEK_DIR` (default `~/tsnzeek`): `logs/` and `run/` (pid files), so that `stop` ends both.
 - `deploy/ids.json` lists every threshold with its default; `install.sh` puts it in `/etc/tsnzeek/` unless a file is there. A unit test keeps it equal to `ids/config.py`.
 - The Zeek unit is called `tsnzeek-monitor.service` (monitor and IDS are the two parts); `install.sh` removes an old `tsnzeek-zeek.service`.
