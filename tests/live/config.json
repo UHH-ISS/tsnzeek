@@ -1,0 +1,5 @@
+{
+	"nr_of_member_streams": 2,
+	"timeout": 5,
+	"recovery_reset_time": 3
+}
