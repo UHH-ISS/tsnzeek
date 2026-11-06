@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+### Names and layout
+- `cb` is called `frer` everywhere: `frer.zeek`, `frer.log`, the IDS message kind `frer`, `frames/layers/frer.py` (class `FRER`), `TSN::frer_message`, `FRER::FRERFrame`. The golden logs are renamed; `python3 -m ids --replay frer.log ...`.
+- `scapy/` is called `frames/` (it shadowed the Scapy package when a script ran from the repository root). The grammars are `frer.spicy`, `srp.spicy`, `ptp.spicy`.
+- `tests/run.sh` is `tests/run_logs.sh` (next to `run_ids.sh` and `live/run_live.py`).
+- `frames/layers/ptp.py`: a Scapy layer for the PTP header, shared by the tests (`gen_pcaps.py`), the demo and the senders; the generated pcaps are unchanged.
+- `tsn srp_bandwidth_jump` and `tsn srp_request_burst` (with live scenarios in `run_live.py`).
+- `stats.log`: Zeek's load figures (packets processed and dropped, events, memory) every 10 s.
+
 ### Web interface
 - Optional everywhere: `deploy/headless.sh start ... -w [-p PORT]` starts it with the monitor and the IDS (`stop` and `status` handle it), `sudo deploy/install.sh --with-web` installs `tsnzeek-web.service` (same user as the IDS, `127.0.0.1:8000`). Without these nothing of it runs.
 - `web/`: a small Django app (no database, `127.0.0.1` only) with the tabs Overview (connection, messages per second, alerts per rule, tracked FRER streams, SRP reservations and PTP domains, latest alerts), Rules (switch rules on and off), Config (change thresholds) and Logs (live tail of Zeek's logs and the alerts). It reads `state.json` and the logs and writes `control.json`, validated by the code the IDS applies it with. Tests: `python web/manage.py test console`.

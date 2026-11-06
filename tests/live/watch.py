@@ -10,8 +10,8 @@ import os
 import sys
 import time
 
-COLORS = {"cb": "36", "ptp": "32", "srp": "33", "tsn_errors": "31", "notice": "1;35"}
-SHOWN = ("cb", "ptp", "srp", "tsn_errors", "notice")
+COLORS = {"frer": "36", "ptp": "32", "srp": "33", "tsn_errors": "31", "notice": "1;35"}
+SHOWN = ("frer", "ptp", "srp", "tsn_errors", "notice")
 
 
 def endpoint(addr, port):
@@ -26,8 +26,8 @@ def place(r):
 
 
 def render(log, r):
-    if log == "cb":
-        return f"CB     {place(r)}  seq={r['sequence_nr']}" + (f"  RESERVED={r['reserved']}" if r["reserved"] else "")
+    if log == "frer":
+        return f"FRER   {place(r)}  seq={r['sequence_nr']}" + (f"  RESERVED={r['reserved']}" if r["reserved"] else "")
     if log == "ptp":
         extra = ""
         if "gm_priority1" in r:
@@ -48,7 +48,7 @@ def render(log, r):
 
 def main(directory):
     offsets = {}
-    print(f"watching {directory}  (cb / ptp / srp / tsn_errors / notice)\n", flush=True)
+    print(f"watching {directory}  (frer / ptp / srp / tsn_errors / notice)\n", flush=True)
     while True:
         for log in SHOWN:
             path = os.path.join(directory, log + ".log")

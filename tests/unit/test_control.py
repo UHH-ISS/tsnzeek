@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 import helpers  # noqa: F401  (puts the repository on sys.path)
-from helpers import cb
+from helpers import frer as frer_msg
 from ids import frer, ptp, srp
 from ids.__main__ import build_engine
 from ids.catalog import NAMES, RULES, rule_name
@@ -83,7 +83,7 @@ class ControlTest(unittest.TestCase):
         """The rules named frer_excess_copies for three copies of one sequence number (two member streams expected)."""
         alerts = []
         for i in range(3):
-            alerts += engine.feed(*cb(t0 + i * 0.01, seq))
+            alerts += engine.feed(*frer_msg(t0 + i * 0.01, seq))
         return [a for a in alerts if a.rule == "frer_excess_copies"]
 
     def test_state_lists_every_rule_with_its_protocol_and_the_active_config(self):
@@ -108,7 +108,7 @@ class ControlTest(unittest.TestCase):
     def test_threshold_change_applies_at_once_and_keeps_what_was_learned(self):
         control, engine = make(self.dir, nr_of_member_streams=5)
         detector = engine.detectors[0]
-        engine.feed(*cb(0.0, 6))
+        engine.feed(*frer_msg(0.0, 6))
         learned = dict(detector.history)
         self.assertEqual(self.excess(engine, seq=1, t0=1.0), [])                   # 3 copies of 5 expected: fine
         write(self.dir, {"config": {"nr_of_member_streams": 2}})
@@ -140,11 +140,11 @@ class ControlTest(unittest.TestCase):
     def test_state_has_counters_streams_and_a_rate(self):
         control, engine = make(self.dir)
         for i in range(4):
-            control.note_message("cb")
-            engine.feed(*cb(float(i), i + 1))
+            control.note_message("frer")
+            engine.feed(*frer_msg(float(i), i + 1))
         control.poll()
         st = state(self.dir)
-        self.assertEqual(st["messages"], {"cb": 4})
+        self.assertEqual(st["messages"], {"frer": 4})
         self.assertEqual(st["streams"]["frer"][0]["stream"], "00:00:00:00:00:01/150")
         self.assertIn("messages_per_second", st)
 

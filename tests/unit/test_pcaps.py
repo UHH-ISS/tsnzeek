@@ -37,7 +37,7 @@ class PcapRules(unittest.TestCase):
         subprocess.run([ZEEK, "-C", "-D", "-r", os.path.join(ROOT, "tests", "pcaps", case + ".pcap"),
                         os.path.join(ROOT, "spicy", "scripts"), "TSN::enable_broker=F", "LogAscii::use_json=T"],
                        cwd=out, env=env, check=True, capture_output=True)
-        logs = [os.path.join(out, f) for f in ("cb.log", "ptp.log", "srp.log") if os.path.exists(os.path.join(out, f))]
+        logs = [os.path.join(out, f) for f in ("frer.log", "ptp.log", "srp.log") if os.path.exists(os.path.join(out, f))]
         engine = build_engine(CONFIG)
         alerts = []
         for kind, msg in load_logs(logs):

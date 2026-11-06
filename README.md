@@ -7,7 +7,7 @@ logs everything it parses, and passes the messages to an intrusion detection mod
 ## Features
 
 - **Protocol analysis** of SRP (802.1Qcc), FRER (802.1CB) and (g)PTP (IEEE 1588 / 802.1AS, over Ethernet and UDP), written to
-  `srp.log`, `cb.log` and `ptp.log`; malformed frames are reported in `tsn_errors.log`.
+  `srp.log`, `frer.log` and `ptp.log`; malformed frames are reported in `tsn_errors.log`.
 - **Attack detection** with rules for the three protocols:
 
   | Protocol | Detected attacks |
@@ -23,7 +23,7 @@ logs everything it parses, and passes the messages to an intrusion detection mod
 ## Architecture
 
 ```
- TSN frames ──► Zeek + Spicy grammars ──► logs (srp, cb, ptp, tsn_errors)
+ TSN frames ──► Zeek + Spicy grammars ──► logs (srp, frer, ptp, tsn_errors)
                     │
                     └── Broker (JSON per message) ──► IDS ──► alerts ──► Zeek notice.log
 ```
@@ -35,7 +35,7 @@ logs everything it parses, and passes the messages to an intrusion detection mod
 | [`web/`](web/README.md) | Django interface: live logs, alerts, rules, configuration; rules and thresholds can be changed at run time |
 | [`deploy/`](deploy/README.md) | optional systemd services, configuration and log locations |
 | [`tests/`](tests/README.md) | unit and pcap tests; [`tests/live/`](tests/live/README.md) the Mininet network, live tests and demo |
-| [`scapy/`](scapy/README.md) | Scapy layers for FRER and SRP, the original attack script |
+| [`frames/`](frames/README.md) | Scapy layers for FRER and SRP, the original attack script |
 | `build.sh` | compiles the grammars and runs the unit tests afterwards (`--no-test` skips them) |
 | [`CHANGELOG.md`](CHANGELOG.md) | what changed since the original release |
 
@@ -72,7 +72,7 @@ Pick one; all of them are described below or in the linked guide.
 | monitor in the background, nothing installed | `deploy/headless.sh start -i IFACE` / `stop` | [Headless](#headless-no-terminal-window-no-service) |
 | monitor permanently, started at boot | `sudo deploy/install.sh`, `systemctl start tsnzeek.target` | [`deploy/`](deploy/README.md) |
 | watch and control the detection in a browser (same machine) | `python web/manage.py runserver` | [`web/`](web/README.md) |
-| check that everything works | `./build.sh`, `tests/run.sh`, `tests/run_ids.sh` | [`tests/`](tests/README.md) |
+| check that everything works | `./build.sh`, `tests/run_logs.sh`, `tests/run_ids.sh` | [`tests/`](tests/README.md) |
 | see attacks and detections in a demo | `sudo -E python3 tests/live/run_live.py --demo` | [`tests/live/`](tests/live/README.md) |
 
 ## Usage
@@ -96,7 +96,7 @@ For a run without a terminal window, see [Headless](#headless-no-terminal-window
 as systemd services (optional), see [`deploy/`](deploy/README.md).
 
 Alerts appear on the IDS console and come back to Zeek as `Possible_Attack` entries of `notice.log`. To run the rules on
-logs of an earlier run, without Zeek or Broker: `python3 -m ids --replay cb.log srp.log ptp.log`.
+logs of an earlier run, without Zeek or Broker: `python3 -m ids --replay frer.log srp.log ptp.log`.
 
 ## Headless (no terminal window, no service)
 
@@ -106,7 +106,7 @@ checks and stops both. Everything it creates lives in one directory, `$TSNZEEK_D
 
 ```
 ~/tsnzeek/
-  logs/    cb.log ptp.log srp.log tsn_errors.log notice.log ...  Zeek's logs (JSON)
+  logs/    frer.log ptp.log srp.log tsn_errors.log notice.log ...  Zeek's logs (JSON)
            alerts.log                                           the alerts of the IDS
            ids.out monitor.out web.out                          console output of the programs
   run/     ids.pid monitor.pid web.pid                          how `stop` and `status` find them
@@ -129,7 +129,7 @@ checks and stops both. Everything it creates lives in one directory, `$TSNZEEK_D
    ```sh
    deploy/headless.sh status                                    # IDS, Monitor (and Web) "running"
    cat ~/tsnzeek/logs/ids.out                                    # "Connected to Zeek"
-   tail -f ~/tsnzeek/logs/{cb,ptp,srp}.log                       # one JSON line per message
+   tail -f ~/tsnzeek/logs/{frer,ptp,srp}.log                       # one JSON line per message
    tail -f ~/tsnzeek/logs/alerts.log ~/tsnzeek/logs/notice.log   # the alerts
    ```
 
@@ -149,7 +149,7 @@ Give `status` and `stop` the same `-d` (or `$TSNZEEK_DIR`) as `start` if you did
 
 ```sh
 python3 -m unittest discover -s tests/unit   # rules and pcaps
-tests/run.sh && tests/run_ids.sh             # Zeek logs and Zeek + IDS end to end
+tests/run_logs.sh && tests/run_ids.sh             # Zeek logs and Zeek + IDS end to end
 ```
 
 Step by step guides: [`tests/README.md`](tests/README.md) (the automatic tests) and [`tests/live/README.md`](tests/live/README.md) (the Mininet demo).

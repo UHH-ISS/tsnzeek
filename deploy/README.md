@@ -45,7 +45,7 @@ installed.
 ```sh
 systemctl --no-pager status tsnzeek-monitor tsnzeek-ids      # both "active (running)" (and tsnzeek-web, if installed)
 journalctl --no-pager -u tsnzeek-ids -n 20                # "Connected to Zeek"
-ls /var/log/tsnzeek                                       # cb.log, ptp.log, srp.log ... as frames arrive
+ls /var/log/tsnzeek                                       # frer.log, ptp.log, srp.log ... as frames arrive
 tail -f /var/log/tsnzeek/alerts.log                       # the alerts
 ```
 
@@ -77,7 +77,7 @@ Restart the IDS after a change: `sudo systemctl restart tsnzeek-ids`. The Broker
 
 | Where | Content |
 | --- | --- |
-| `/var/log/tsnzeek/cb.log`, `ptp.log`, `srp.log`, `tsn_errors.log`, `notice.log`, ... | Zeek's logs as JSON, flushed every second; Zeek rotates them daily (the old ones get the date in their name) |
+| `/var/log/tsnzeek/frer.log`, `ptp.log`, `srp.log`, `tsn_errors.log`, `notice.log`, ... | Zeek's logs as JSON, flushed every second; Zeek rotates them daily (the old ones get the date in their name) |
 | `/var/log/tsnzeek/alerts.log` | the alerts of the IDS, one line each; rotated weekly by logrotate |
 | `journalctl -u tsnzeek-ids -f` | the same alerts, and the messages about the connection to Zeek |
 | `journalctl -u tsnzeek-monitor` | errors of Zeek itself |

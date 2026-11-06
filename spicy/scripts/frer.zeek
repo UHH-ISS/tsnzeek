@@ -1,6 +1,6 @@
 # -----------------------------------------------------------
 #
-#  cb.zeek
+#  frer.zeek
 #
 # IEEE 802.1CB (FRER): log and forward redundancy tags.
 #
@@ -13,9 +13,9 @@
 module TSN;
 
 export {
-	redef enum Log::ID += { LOG_CB };
+	redef enum Log::ID += { LOG_FRER };
 
-	type CBInfo: record {
+	type FRERInfo: record {
 		ts:           time   &log;
 		src:          string &log &optional;
 		dst:          string &log &optional;
@@ -24,20 +24,20 @@ export {
 		sequence_nr:  count  &log;
 	};
 
-	global cb_message: event(p: raw_pkt_hdr, frame: FRER::CBFrame);
+	global frer_message: event(p: raw_pkt_hdr, frame: FRER::FRERFrame);
 }
 
-event cb_message(p: raw_pkt_hdr, frame: FRER::CBFrame)
+event frer_message(p: raw_pkt_hdr, frame: FRER::FRERFrame)
 	{
-	local rec = CBInfo($ts = network_time(), $reserved = frame$reserved, $sequence_nr = frame$sequenceNumber);
+	local rec = FRERInfo($ts = network_time(), $reserved = frame$reserved, $sequence_nr = frame$sequenceNumber);
 	if ( p$l2?$src ) rec$src = p$l2$src;
 	if ( p$l2?$dst ) rec$dst = p$l2$dst;
 	if ( p$l2?$vlan ) rec$vlan = p$l2$vlan;
-	Log::write(LOG_CB, rec);
-	ids_publish("cb", rec);
+	Log::write(LOG_FRER, rec);
+	ids_publish("frer", rec);
 	}
 
 event zeek_init() &priority=5
 	{
-	Log::create_stream(LOG_CB, [$columns=CBInfo, $path="cb"]);
+	Log::create_stream(LOG_FRER, [$columns=FRERInfo, $path="frer"]);
 	}

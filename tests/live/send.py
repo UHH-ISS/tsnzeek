@@ -48,6 +48,20 @@ def say(text):
     print(text, flush=True)
 
 
+_last_progress = 0.0
+
+
+def progress(text):
+    """A status line for a long-running sender: one line rewritten in place on a terminal, one line every 5 s otherwise
+    (a redirected output or a log window would fill up with one line per frame)."""
+    global _last_progress
+    if sys.stdout.isatty():
+        print(f"\r\033[K{text}", end="", flush=True)
+    elif time.monotonic() - _last_progress >= 5:
+        _last_progress = time.monotonic()
+        print(text, flush=True)
+
+
 # ------------------------------------------------------------------ one-shot
 
 def frer_mixed(iface, a):
@@ -79,7 +93,7 @@ def stream(iface, a):
     seq = a.start
     while True:
         send(iface, [g.frer(seq, vlan=a.vlan) for _ in range(a.copies)], gap=0)
-        say(f"  seq {seq} x{a.copies}")
+        progress(f"  seq {seq} x{a.copies}")
         seq = (seq + a.step) & 0xFFFF
         time.sleep(1 / a.rate)
 
@@ -95,7 +109,7 @@ def ptp_loop(iface, a):
                    g.ptp(g.ptp_msg(0x8, g.timestamp(ns=seq), seq=seq)),
                    g.ptp_udp(g.ptp_msg(0x0, g.timestamp(ns=seq), seq=seq, transport=0))]
         send(iface, frames, gap=0.05)
-        say(f"  sync {seq}")
+        progress(f"  sync {seq}")
         seq = (seq + 1) & 0xFFFF
         time.sleep(1)
 
@@ -130,6 +144,19 @@ def frer_out_of_order(iface, a):
 def srp_reservation_change(iface, a):
     send(iface, [g.talker_msg(a.uid, rank=True)], gap=0.5)
     send(iface, [g.talker_msg(a.uid, frames_=4, rank=True)])
+
+
+def srp_bandwidth_jump(iface, a):
+    """Ten reservations of the same bandwidth (the history the rule needs), then one that asks for far more.
+    1.1 s apart, and a pause before the last one, so that no more than 10 requests fall into 10 s (that is another rule)."""
+    send(iface, [g.talker_msg(a.uid + i, rank=True) for i in range(10)], gap=1.1)
+    time.sleep(1.2)
+    send(iface, [g.talker_msg(a.uid + 10, size=900, rank=True)])
+
+
+def srp_request_burst(iface, a):
+    """Twelve reservations for twelve different streams within about a second (more than 10 requests in 10 s)."""
+    send(iface, [g.talker_msg(a.uid + i, rank=True) for i in range(12)], gap=0.1)
 
 
 # PTP attacks against a real ptp4l, and what it took for them to work:
@@ -183,6 +210,8 @@ ATTACKS = {
                    "frer_excess_copies, frer_out_of_order, later frer_dead_stream"),
     "srp_oversized_request": ("a reservation over every threshold, with no stream behind it", "and later srp_unused_reservation"),
     "srp_reservation_change": ("the same reservation id requested twice", ""),
+    "srp_bandwidth_jump": ("ten alike reservations (takes 13 s), then one asking for far more bandwidth", "and later srp_unused_reservation"),
+    "srp_request_burst": ("twelve reservations for twelve streams within a second", "and later srp_unused_reservation"),
     "ptp_rogue_grandmaster": ("a clock with a better priority announces itself as grandmaster", ""),
     "ptp_unannounced_sync": ("Sync from a clock that never announced itself", ""),
     "ptp_sequence_id": ("Sync in the master's name with a sequenceId that jumps and repeats (--clock real: ptp4l's master)", ""),
@@ -190,7 +219,7 @@ ATTACKS = {
 
 SCENARIOS = {f.__name__: f for f in (
     stream, ptp_loop, ptp, srp_normal, replay, probe,
-    frer_excess_copies, frer_out_of_order, frer_mixed, srp_oversized_request, srp_reservation_change, ptp_rogue_grandmaster, ptp_unannounced_sync, ptp_sequence_id)}
+    frer_excess_copies, frer_out_of_order, frer_mixed, srp_oversized_request, srp_reservation_change, srp_bandwidth_jump, srp_request_burst, ptp_rogue_grandmaster, ptp_unannounced_sync, ptp_sequence_id)}
 
 
 def listing(color=None):

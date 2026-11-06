@@ -12,7 +12,7 @@
 
 module FRER;
 
-public type CBFrame = unit {
+public type FRERFrame = unit {
 	# Must be zero according to 802.1CB; kept so that the IDS can flag violations.
 	reserved:        uint16;
 	sequenceNumber:  uint16;

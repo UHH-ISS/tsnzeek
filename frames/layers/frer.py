@@ -2,7 +2,7 @@
 
 # -----------------------------------------------------------
 #
-#  cb.py --- IEEE 802.1CB Frame Replication and Elimination for Reliability (FRER) support for Scapy
+#  frer.py --- IEEE 802.1CB Frame Replication and Elimination for Reliability (FRER) support for Scapy
 #
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
@@ -24,13 +24,13 @@ logger = logging.getLogger("scapy")
 logger.setLevel(logging.INFO)
 
 
-class CB(Packet):
+class FRER(Packet):
     name = "FRER"
     fields_desc = [ShortField("reserved", 0),
                    ShortField("sequence_nr", 0)]
 
 
-bind_layers(Dot1Q, CB, type=0xf1c1)
+bind_layers(Dot1Q, FRER, type=0xf1c1)
 
 if __name__ == "__main__":
     interact(mydict=globals(), mybanner="Test add-on TSN")

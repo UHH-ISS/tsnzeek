@@ -5,7 +5,7 @@ message to this module over Broker; alerts go back to Zeek and appear in `notice
 
 ```
 PYTHONPATH=/opt/zeek/lib/zeek/python python3 -m ids [--config thresholds.json]   # live, connects to Zeek
-python3 -m ids --replay cb.log srp.log ptp.log                                    # Zeek's JSON logs, no Zeek or Broker
+python3 -m ids --replay frer.log srp.log ptp.log                                    # Zeek's JSON logs, no Zeek or Broker
 ```
 
 `--service` waits for Zeek without a time limit and keeps running when Zeek restarts (used by the systemd unit, see [`deploy/`](../deploy/README.md));
@@ -51,9 +51,9 @@ the [live demo](../tests/live/README.md) (where one exists). The last column is 
 | | `ptp_unannounced_sync` | Sync or Follow_Up from a clock that never announced itself | `ptp_learning_time` | |
 | | `ptp_sequence_id` | sequenceId repeated, going back or skipping (Ethernet and UDP counted apart) | `ptp_seq_gap_tolerance`, `ptp_seq_reset_time` | |
 
-The timing attack 2 of the original script (`frer_timing_jitter` in `scapy/scripts/attacks.py`) has no rule.
+The timing attack 2 of the original script (`frer_timing_jitter` in `frames/scripts/attacks.py`) has no rule.
 
-One detector per protocol: `FrerDetector` (cb.log), `SrpDetector` (srp.log; it also reads cb.log to see whether a reservation
+One detector per protocol: `FrerDetector` (frer.log), `SrpDetector` (srp.log; it also reads frer.log to see whether a reservation
 is used) and `PtpDetector` (ptp.log). `config.py` holds all thresholds. The PTP rules judge message content and sequences,
 never the local clock, and learn what is normal from the traffic: a master that announced itself, the sequence so far.
 Announce messages of slave-only clocks (class 255) are not grandmaster candidates.
@@ -62,10 +62,10 @@ Announce messages of slave-only clocks (class 255) are not grandmaster candidate
 
 The engine (`engine.py`) feeds messages to detectors and keeps a clock that is the timestamp of the newest message,
 so a pcap replayed at any speed gives the alerts of live traffic. Messages are the JSON records that Zeek also writes to
-`cb.log`, `ptp.log` and `srp.log`, delivered as `TSN::ids_message(kind, json)`.
+`frer.log`, `ptp.log` and `srp.log`, delivered as `TSN::ids_message(kind, json)`.
 
 To add a detector (a statistical test, an embedded ML model), subclass `Detector` (`engine.py`), implement `on_message(kind, msg)`
-(`kind` is `cb`, `ptp` or `srp`, `msg` a dict) and/or `on_tick(now)`, return `Alert`s, and add the instance to the engine in `build_engine()` of
+(`kind` is `frer`, `ptp` or `srp`, `msg` a dict) and/or `on_tick(now)`, return `Alert`s, and add the instance to the engine in `build_engine()` of
 `__main__.py`. Alerts return to Zeek as `TSN::raise_notice`.
 
 ## Known gaps

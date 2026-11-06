@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 
-"""Generate the synthetic pcaps used by tests/run.sh (needs scapy: .venv/bin/python tests/gen_pcaps.py)."""
+"""Generate the synthetic pcaps used by tests/run_logs.sh (needs scapy: .venv/bin/python tests/gen_pcaps.py)."""
 import os
 import struct
 import sys
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "scapy", "layers"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "frames", "layers"))
 
 from scapy.all import IP, IPv6, UDP, Dot1Q, Ether, Raw, raw, wrpcap  # noqa: E402
-import srp  # noqa: E402  (scapy/layers/srp.py)
+import srp  # noqa: E402  (frames/layers/srp.py)
+from ptp import CLOCK, PTP, announce_body, timestamp, tlv  # noqa: E402,F401  (frames/layers/ptp.py)
 
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pcaps")
 SRC, DST = "00:00:00:00:00:01", "00:00:00:00:00:02"
@@ -17,7 +18,6 @@ ETH_FRER = 0xF1C1
 ETH_PTP = 0x88F7
 ETH_SRP = 0x22EA
 GPTP_DST = "01:80:c2:00:00:0e"
-CLOCK = bytes.fromhex("008063ffff0009ba")
 
 
 def frer(seq=1, reserved=0, vlan=150, tail=b"", src=SRC):
@@ -32,28 +32,13 @@ def port_id(clock=CLOCK, port=1):
     return clock + struct.pack("!H", port)
 
 
-def timestamp(sec=1700000000, ns=123456789):
-    return struct.pack("!HII", sec >> 32, sec & 0xFFFFFFFF, ns)
-
-
-def ptp_header(msg_type, length, seq=1, transport=1, domain=0, flags=0x0200, control=0, log_interval=-3, clock=CLOCK):
-    return (struct.pack("!BBHBBH", (transport << 4) | msg_type, 0x02, length, domain, 0, flags)
-            + struct.pack("!qI", 0, 0) + port_id(clock) + struct.pack("!HBb", seq, control, log_interval))
-
-
-def announce_body(priority1=246, clock_class=248, identity=CLOCK, priority2=246):
-    """The Announce body: the grandmaster's priority, clock quality and identity."""
-    return (timestamp() + struct.pack("!hbB", 37, 0, priority1) + bytes([clock_class, 0x21])
-            + struct.pack("!H", 0x4E5D) + bytes([priority2]) + identity + struct.pack("!HB", 1, 0xA0))
-
-
-def ptp_msg(msg_type, body=b"", seq=1, length=None, **kw):
-    """A PTP message; `length` overrides messageLength so inconsistent frames can be built."""
-    return ptp_header(msg_type, 34 + len(body) if length is None else length, seq, **kw) + body
-
-
-def tlv(tlv_type, value=b"", length=None):
-    return struct.pack("!HH", tlv_type, len(value) if length is None else length) + value
+def ptp_msg(msg_type, body=b"", seq=1, length=None, transport=1, domain=0, flags=0x0200, control=0, log_interval=-3,
+            clock=CLOCK):
+    """A PTP message (the header from frames/layers/ptp.py); `length` overrides messageLength so that inconsistent
+    frames can be built."""
+    return bytes(PTP(transportSpecific=transport, messageType=msg_type, messageLength=length, domainNumber=domain,
+                     flagField=flags, clockIdentity=clock, sequenceId=seq, controlField=control,
+                     logMessageInterval=log_interval) / Raw(body))
 
 
 def ptp(payload, vlan=None):
@@ -83,7 +68,7 @@ def srp_frame(payload, vlan=1000):
 
 
 def srp_samples():
-    """The frames of scapy/samples/srp_*.pcap, plus IPv6/second-interface variants."""
+    """The frames of frames/samples/srp_*.pcap, plus IPv6/second-interface variants."""
     i1 = srp.InterfaceID(InterfaceName="thisIsAnInterfaceName", MacAddress="00:00:00:00:00:0a")
     i2 = srp.InterfaceID(InterfaceName="thisIsAnotherInterfaceName", MacAddress="00:00:00:00:00:0b")
     stream = srp.StreamID(MacAddress="00:00:00:00:00:02", UniqueID=7)

@@ -19,7 +19,7 @@
 # -----------------------------------------------------------
 
 packet analyzer spicy::FRER:
-	parse with FRER::CBFrame;
+	parse with FRER::FRERFrame;
 
 packet analyzer spicy::SRP:
 	parse with SRP::SRPFrame;
@@ -66,11 +66,11 @@ on SRP::TalkerEnhanced_FirstValue    -> event TSN::talkerEnhanced_FirstValueMsg(
 on SRP::ListenerEnhanced_FirstValue  -> event TSN::listenerEnhanced_FirstValueMsg($packet, self);
 on SRP::UnknownMessage               -> event TSN::srp_unknownMsg($packet, self);
 
-export FRER::CBFrame;
+export FRER::FRERFrame;
 
-on FRER::CBFrame                     -> event TSN::cb_message($packet, self);
+on FRER::FRERFrame                     -> event TSN::frer_message($packet, self);
 
-on FRER::CBFrame::%error(msg: string) -> event TSN::parse_error($packet, "FRER", msg);
+on FRER::FRERFrame::%error(msg: string) -> event TSN::parse_error($packet, "FRER", msg);
 on SRP::SRPFrame::%error(msg: string) -> event TSN::parse_error($packet, "SRP", msg);
 on PTP::PTPFrame::%error(msg: string) -> event TSN::parse_error($packet, "PTP", msg);
 

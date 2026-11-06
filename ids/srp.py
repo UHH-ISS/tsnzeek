@@ -11,7 +11,7 @@
 #   srp_reservation_change     a request for a reservation that exists already         (attack8)
 #   srp_unused_reservation     a reservation with no FRER traffic                      (attack9)
 #
-# The last rule also reads the records of cb.log: a reservation is used when frames of its stream arrive.
+# The last rule also reads the records of frer.log: a reservation is used when frames of its stream arrive.
 #
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
@@ -42,7 +42,7 @@ class SrpDetector(Detector):
         self.bandwidth: deque = deque(maxlen=config.srp_bandwidth_history_len)
 
     def on_message(self, kind, msg):
-        if kind == "cb":
+        if kind == "frer":
             self.traffic.setdefault(msg.get("src"), {})[msg.get("vlan")] = msg["ts"]
         elif kind == "srp" and msg.get("msg_type") == "TalkerEnhanced":
             return self._talker(msg)

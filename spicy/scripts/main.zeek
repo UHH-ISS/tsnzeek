@@ -46,7 +46,7 @@ export {
 	## Format a 6-octet MAC address as aa:bb:cc:dd:ee:ff.
 	global mac_str: function(b: string): string;
 
-	## One parsed TSN message for the external IDS. `kind` is "cb", "ptp" or "srp"; `data` is the JSON
+	## One parsed TSN message for the external IDS. `kind` is "frer", "ptp" or "srp"; `data` is the JSON
 	## encoding of the record that is also written to the respective log.
 	global ids_message: event(kind: string, data: string);
 
@@ -66,7 +66,7 @@ function ids_publish(kind: string, rec: any)
 		Broker::publish("/topic/tsn", Broker::make_event(ids_message, kind, to_json(rec, T)));
 	}
 
-# Spicy appends the grammar location, e.g. " (/path/FRER.spicy:17:19-17:24)"; it is machine-specific.
+# Spicy appends the grammar location, e.g. " (/path/frer.spicy:17:19-17:24)"; it is machine-specific.
 function error_reason(msg: string): string
 	{
 	return sub(msg, /[[:blank:]]\([^()]*\.spicy:[0-9:-]+\)$/, "");

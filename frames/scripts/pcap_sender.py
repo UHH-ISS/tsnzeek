@@ -2,9 +2,9 @@
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 """Send the frames of a pcap, one per Enter.
 
-    sudo .venv/bin/python scapy/scripts/pcap_sender.py <pcap> [interface]      (interface defaults to enp0s3)
+    sudo .venv/bin/python frames/scripts/pcap_sender.py <pcap> [interface]      (interface defaults to enp0s3)
 
-The pcap is a path or the name of a file in scapy/samples/ (ptpv2_vlan, frer, srp_talker, srp_listener),
+The pcap is a path or the name of a file in frames/samples/ (ptp, ptpv2_vlan, frer, srp_talker, srp_listener),
 with or without the .pcap ending.
 """
 import os
