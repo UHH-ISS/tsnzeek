@@ -4,6 +4,9 @@ TSNZeek monitors Time-Sensitive Networking (TSN) traffic and detects attacks aga
 [Zeek](https://zeek.org) the TSN control and data protocols with [Spicy](https://docs.zeek.org/projects/spicy) grammars,
 logs everything it parses, and passes the messages to an intrusion detection module that raises alerts.
 
+> The first version, the one described in the paper, is kept under the git tag `v1` (`git checkout v1`). This tree is `v2`; the optional web
+> interface is developed on the `web` branch.
+
 ## Features
 
 - **Protocol analysis** of SRP (802.1Qcc), FRER (802.1CB) and (g)PTP (IEEE 1588 / 802.1AS, over Ethernet and UDP), written to
@@ -32,7 +35,6 @@ logs everything it parses, and passes the messages to an intrusion detection mod
 | --- | --- |
 | [`spicy/`](spicy/README.md) | grammars, `TSN.evt`, the Zeek scripts (data plane) |
 | [`ids/`](ids/README.md) | the intrusion detection (control plane) |
-| [`web/`](web/README.md) | Django interface: live logs, alerts, rules, configuration; rules and thresholds can be changed at run time |
 | [`deploy/`](deploy/README.md) | optional systemd services, configuration and log locations |
 | [`tests/`](tests/README.md) | unit and pcap tests; [`tests/live/`](tests/live/README.md) the Mininet network, live tests and demo |
 | [`frames/`](frames/README.md) | Scapy layers for FRER and SRP, the original attack script |
@@ -71,8 +73,6 @@ Pick one; all of them are described below or in the linked guide.
 | monitor an interface by hand, in two terminals | `zeek -i IFACE spicy/scripts` and `python3 -m ids` | [Usage](#usage) |
 | monitor in the background, nothing installed | `deploy/headless.sh start -i IFACE` / `stop` | [Headless](#headless-no-terminal-window-no-service) |
 | monitor permanently, started at boot | `sudo deploy/install.sh`, `systemctl start tsnzeek.target` | [`deploy/`](deploy/README.md) |
-| watch and control the detection in a browser (same machine) | `python web/manage.py runserver` | [`web/`](web/README.md) |
-| check that everything works | `./build.sh`, `tests/run_logs.sh`, `tests/run_ids.sh` | [`tests/`](tests/README.md) |
 | see attacks and detections in a demo | `sudo -E python3 tests/live/run_live.py --demo` | [`tests/live/`](tests/live/README.md) |
 
 ## Usage
@@ -108,9 +108,8 @@ checks and stops both. Everything it creates lives in one directory, `$TSNZEEK_D
 ~/tsnzeek/
   logs/    frer.log ptp.log srp.log tsn_errors.log notice.log ...  Zeek's logs (JSON)
            alerts.log                                           the alerts of the IDS
-           ids.out monitor.out web.out                          console output of the programs
-  run/     ids.pid monitor.pid web.pid                          how `stop` and `status` find them
-  control/ state.json control.json                              the channel between the IDS and the web interface
+           ids.out monitor.out                                  console output of the programs
+  run/     ids.pid monitor.pid                                  how `stop` and `status` find them
 ```
 
 1. Build once: `./build.sh`
@@ -118,16 +117,15 @@ checks and stops both. Everything it creates lives in one directory, `$TSNZEEK_D
 3. Start (asks for your `sudo` password: capturing needs root; `sudo setcap cap_net_raw,cap_net_admin=eip /opt/zeek/bin/zeek` once avoids it, and then the logs belong to you instead of root):
 
    ```sh
-   deploy/headless.sh start -i eth0 [-d ~/tsnzeek] [-c my-thresholds.json] [-w [-p 8000]]
+   deploy/headless.sh start -i eth0 [-d ~/tsnzeek] [-c my-thresholds.json]
    ```
 
-   `-w` also starts the [web interface](web/README.md) on <http://127.0.0.1:8000/> (`-p` for another port; needs Django:
-   `.venv/bin/pip install -r web/requirements.txt`, once). `-c` gives the IDS thresholds (the keys of `Config` in `ids/config.py`; without it `/etc/tsnzeek/ids.json` if it
+   `-c` gives the IDS thresholds (the keys of `Config` in `ids/config.py`; without it `/etc/tsnzeek/ids.json` if it
    exists, else the defaults). The IDS starts first and waits for the monitor.
 4. Check and watch:
 
    ```sh
-   deploy/headless.sh status                                    # IDS, Monitor (and Web) "running"
+   deploy/headless.sh status                                    # IDS, Monitor "running"
    cat ~/tsnzeek/logs/ids.out                                    # "Connected to Zeek"
    tail -f ~/tsnzeek/logs/{frer,ptp,srp}.log                       # one JSON line per message
    tail -f ~/tsnzeek/logs/alerts.log ~/tsnzeek/logs/notice.log   # the alerts

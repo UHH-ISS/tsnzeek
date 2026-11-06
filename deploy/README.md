@@ -8,8 +8,7 @@ systemd.
 | --- | --- |
 | `tsnzeek-monitor.service` | the monitor: Zeek on one interface with the TSN analyzers, as user `tsnzeek` with only `CAP_NET_RAW` and `CAP_NET_ADMIN` |
 | `tsnzeek-ids.service` | the IDS, `python3 -m ids --service`: waits for the monitor without a time limit, keeps running when it restarts |
-| `tsnzeek-web.service` | optional: the [web interface](../web/README.md) on `127.0.0.1:8000`, as the same user (installed only with `--with-web`) |
-| `tsnzeek.target` | the monitor and the IDS (and the web interface, if installed); start and stop them together |
+| `tsnzeek.target` | the monitor and the IDS; start and stop them together |
 
 The two are independent units: `sudo systemctl stop|start|restart tsnzeek-monitor` or `tsnzeek-ids` act on one, `tsnzeek.target` on both. (`tsnzeek-ids` `Wants=` the monitor, so starting the IDS alone starts the monitor too.) An older install with `tsnzeek-zeek.service` is replaced by `install.sh`.
 
@@ -26,24 +25,10 @@ sudo systemctl start tsnzeek.target
 `/etc/systemd/system/` with the path of this checkout (it has to stay where it is). `ZEEK_PREFIX` (default `/opt/zeek`)
 selects another Zeek. `sudo deploy/install.sh --uninstall` removes the units again; configuration and logs stay.
 
-## With the web interface (optional)
-
-The web interface needs Django in the project's venv. Install it with the rest, or add it later by running `install.sh` again:
-
-```sh
-python3 -m venv .venv && .venv/bin/pip install -r web/requirements.txt     # once
-sudo deploy/install.sh --with-web                                          # --with-web --no-start to install only
-```
-
-Open <http://127.0.0.1:8000/> (this machine only, no login). It runs as the user `tsnzeek`, like the IDS, so it can replace
-`/var/lib/tsnzeek/control.json`, and reads `/var/log/tsnzeek`. Start and stop it on its own with
-`sudo systemctl start|stop tsnzeek-web`; `tsnzeek.target` includes it once it is enabled. Without `--with-web` nothing about it is
-installed.
-
 ## Check that it runs
 
 ```sh
-systemctl --no-pager status tsnzeek-monitor tsnzeek-ids      # both "active (running)" (and tsnzeek-web, if installed)
+systemctl --no-pager status tsnzeek-monitor tsnzeek-ids      # both "active (running)"
 journalctl --no-pager -u tsnzeek-ids -n 20                # "Connected to Zeek"
 ls /var/log/tsnzeek                                       # frer.log, ptp.log, srp.log ... as frames arrive
 tail -f /var/log/tsnzeek/alerts.log                       # the alerts
@@ -90,6 +75,5 @@ Outside a service the alert file is `--alert-log FILE` or `$TSNZEEK_ALERT_LOG`; 
 - No `*.log` files: there was no TSN traffic yet, or Zeek sees the wrong interface (`ip -br link`). Zeek creates a log when its first row is written.
 - `tsnzeek-ids` says `Lost Zeek, waiting for it to come back`: Zeek restarted or stopped; the IDS reconnects by itself.
 - Nothing in `alerts.log` although you attack: check that the IDS was connected (`Connected to Zeek`) before the traffic, and that the thresholds in `/etc/tsnzeek/ids.json` are not too high.
-- `tsnzeek-ids` or `tsnzeek-web` cannot start (`Permission denied`, `No module named ids`): the services run as user `tsnzeek` from this checkout, so that user has to be able to enter its path. On Ubuntu a home directory is `0750`; use `chmod o+x ~` (or keep the checkout outside the home).
-- The web interface says `IDS: no state.json`: the IDS is not running or does not use `/var/lib/tsnzeek`; `systemctl status tsnzeek-ids`.
+- `tsnzeek-ids` cannot start (`Permission denied`, `No module named ids`): the services run as user `tsnzeek` from this checkout, so that user has to be able to enter its path. On Ubuntu a home directory is `0750`; use `chmod o+x ~` (or keep the checkout outside the home).
 - The checkout moved: run `install.sh` again, the units contain its path.
