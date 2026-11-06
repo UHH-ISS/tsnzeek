@@ -52,6 +52,8 @@ SCENARIOS = {
     "frer_out_of_order": scenario([("attacker", "frer_out_of_order")], 8, {"frer_out_of_order": 5, "frer_dead_stream": 1}),
     "srp_oversized_request": scenario([("attacker", "srp_oversized_request")], 8, {"srp_oversized_request": 3, "srp_unused_reservation": 1}),
     "srp_reservation_change": scenario([("attacker", "srp_reservation_change")], 8, {"srp_reservation_change": 1, "srp_unused_reservation": 1}),
+    "srp_bandwidth_jump": scenario([("attacker", "srp_bandwidth_jump")], 8, {"srp_bandwidth_jump": 1, "srp_unused_reservation": 11}),
+    "srp_request_burst": scenario([("attacker", "srp_request_burst")], 8, {"srp_request_burst": 2, "srp_unused_reservation": 12}),
     "ptp": scenario([("h1", "ptp")], 2, {}, 5),
     "ptp_attacks": scenario([("h1", "ptp"), ("attacker", "ptp_rogue_grandmaster"), ("attacker", "ptp_unannounced_sync"),
                              ("attacker", "ptp_sequence_id")], 3, {"ptp_rogue_grandmaster": 1, "ptp_unannounced_sync": 1, "ptp_sequence_id": 2}, 16),

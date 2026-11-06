@@ -12,7 +12,7 @@ from ids.control import CONTROL, STATE, validate
 
 STALE_AFTER = 6.0          # seconds; the IDS rewrites state.json about every two
 LOGS = {                   # name -> file (all JSON lines except alerts)
-    "alerts": "alerts.log", "notice": "notice.log", "cb": "cb.log", "ptp": "ptp.log", "srp": "srp.log",
+    "alerts": "alerts.log", "notice": "notice.log", "frer": "frer.log", "ptp": "ptp.log", "srp": "srp.log",
     "tsn_errors": "tsn_errors.log", "weird": "weird.log", "stats": "stats.log",
 }
 MAX_READ = 256 * 1024

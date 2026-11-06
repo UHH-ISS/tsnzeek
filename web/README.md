@@ -9,7 +9,7 @@ one file, `control.json`.
 | Overview | connection to Zeek, messages per second, alerts per rule, rules on or off, what differs from the defaults, the tracked FRER streams, SRP reservations and PTP domains, the latest alerts | |
 | Rules | every rule per protocol with its number (`#101` ...), summary, thresholds and alert count | switch a rule on or off |
 | Config | every threshold: default, active value, which rules use it | set a value, or go back to the default |
-| Logs | live tail of `alerts`, `notice`, `cb`, `ptp`, `srp`, `tsn_errors`, `weird` and `stats` | |
+| Logs | live tail of `alerts`, `notice`, `frer`, `ptp`, `srp`, `tsn_errors`, `weird` and `stats` | |
 
 Changes reach the IDS within half a second, without a restart, and stay across restarts of the IDS (see
 [`ids/README.md`](../ids/README.md#run-time-control)). A disabled rule keeps running but raises no alerts.
@@ -55,7 +55,7 @@ The page uses these; scripts can too. The POSTs need the CSRF cookie and `X-CSRF
 | `POST /api/rule` `{"rule": "srp_request_burst" or 203, "enabled": false}` | switch a rule |
 | `POST /api/config` `{"set": {"timeout": 30}, "unset": ["frer_history_size"]}` | set thresholds, or return them to the default |
 | `POST /api/reset` | remove `control.json`: all rules on, thresholds as in the config file of the IDS |
-| `GET /api/logs?name=cb&offset=-1` | the last lines (offset -1) or the new whole lines since the byte offset; the answer carries the next offset |
+| `GET /api/logs?name=frer&offset=-1` | the last lines (offset -1) or the new whole lines since the byte offset; the answer carries the next offset |
 
 Everything is validated by `ids/control.py`, the code the IDS applies it with, so the web interface cannot write what the IDS
 would refuse; a refusal is a `400` with the reason.

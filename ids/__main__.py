@@ -6,7 +6,7 @@
 #
 #   python3 -m ids                          connect to Zeek over Broker and run until interrupted
 #   python3 -m ids --offline --idle-exit 2  drive one `zeek -r x.pcap ... TSN::wait_for_peer=T` run
-#   python3 -m ids --replay cb.log srp.log  analyse Zeek's JSON logs, no Zeek or Broker needed
+#   python3 -m ids --replay frer.log srp.log  analyse Zeek's JSON logs, no Zeek or Broker needed
 #
 # Broker's Python bindings ship with Zeek: PYTHONPATH=/opt/zeek/lib/zeek/python
 #
@@ -28,7 +28,7 @@ from .frer import FrerDetector
 from .ptp import PtpDetector
 from .srp import SrpDetector
 
-LOG_KINDS = {"cb": "cb", "ptp": "ptp", "srp": "srp"}
+LOG_KINDS = {"frer": "frer", "ptp": "ptp", "srp": "srp"}
 
 
 SYSTEM_CONFIG = "/etc/tsnzeek/ids.json"
@@ -71,12 +71,12 @@ def report(alerts, notify=None):
 
 
 def load_logs(paths):
-    """Merge Zeek JSON logs by timestamp (cb.log -> "cb", srp.log -> "srp", ptp.log -> "ptp")."""
+    """Merge Zeek JSON logs by timestamp (frer.log -> "frer", srp.log -> "srp", ptp.log -> "ptp")."""
     records = []
     for path in paths:
         kind = path.rsplit("/", 1)[-1].split(".")[0]
         if kind not in LOG_KINDS:
-            sys.exit(f"{path}: expected cb.log, ptp.log or srp.log (written with LogAscii::use_json=T)")
+            sys.exit(f"{path}: expected frer.log, ptp.log or srp.log (written with LogAscii::use_json=T)")
         with open(path) as f:
             for line in f:
                 if line.strip():

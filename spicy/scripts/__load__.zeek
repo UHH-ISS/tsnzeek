@@ -3,7 +3,8 @@
 @load ./main
 @load ./register
 @load ./broker
-@load ./cb
+@load ./frer
 @load ./ptp
 @load ./srp
+@load ./stats
 @load ./flush

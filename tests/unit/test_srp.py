@@ -3,7 +3,7 @@
 """Unit tests of the SRP rules on hand-made messages (no Zeek, no Broker needed)."""
 import unittest
 
-from helpers import MAC, DetectorTest, cb, talker
+from helpers import MAC, DetectorTest, frer, talker
 from ids.srp import SrpDetector
 
 
@@ -52,17 +52,17 @@ class Srp(DetectorTest):
         self.assertEqual(self.run_rules([talker(0, 1)], ticks=[4], timeout=5), [])
 
     def test_reservation_with_traffic(self):
-        msgs = [talker(0, 1), cb(2, 1, src=MAC, vlan=1000)]
+        msgs = [talker(0, 1), frer(2, 1, src=MAC, vlan=1000)]
         self.assertEqual(self.run_rules(msgs, ticks=[6], timeout=5), [])
 
     def test_traffic_before_the_reservation_does_not_count(self):
-        msgs = [cb(0, 1, src=MAC), talker(1, 1)]
+        msgs = [frer(0, 1, src=MAC), talker(1, 1)]
         self.assertEqual(self.run_rules(msgs, ticks=[7], timeout=5), ["srp_unused_reservation"])
 
     def test_traffic_on_another_data_vlan_does_not_count(self):
-        msgs = [talker(0, 1, data_vlan=20), cb(2, 1, src=MAC, vlan=30)]
+        msgs = [talker(0, 1, data_vlan=20), frer(2, 1, src=MAC, vlan=30)]
         self.assertEqual(self.run_rules(msgs, ticks=[6], timeout=5), ["srp_unused_reservation"])
-        msgs = [talker(0, 1, data_vlan=20), cb(2, 1, src=MAC, vlan=20)]
+        msgs = [talker(0, 1, data_vlan=20), frer(2, 1, src=MAC, vlan=20)]
         self.assertEqual(self.run_rules(msgs, ticks=[6], timeout=5), [])
 
     def test_a_reservation_is_judged_once(self):

@@ -92,21 +92,21 @@ class ApiTest(SimpleTestCase):
         self.assertLessEqual(disabled, NAMES)
 
     def test_log_tail_returns_whole_new_lines_only(self):
-        log = self.logs / "cb.log"
+        log = self.logs / "frer.log"
         log.write_text("".join(json.dumps({"ts": i}) + "\n" for i in range(100)))
-        j = self.client.get("/api/logs?name=cb&offset=-1").json()
+        j = self.client.get("/api/logs?name=frer&offset=-1").json()
         self.assertEqual(len(j["lines"]), 60)
         self.assertEqual(json.loads(j["lines"][-1])["ts"], 99)
         with open(log, "a") as f:
             f.write('{"ts": 100}\n{"ts": 10')                              # the second line is not finished
-        k = self.client.get(f"/api/logs?name=cb&offset={j['offset']}").json()
+        k = self.client.get(f"/api/logs?name=frer&offset={j['offset']}").json()
         self.assertEqual(k["lines"], ['{"ts": 100}'])
         with open(log, "a") as f:
             f.write("1}\n")
-        m = self.client.get(f"/api/logs?name=cb&offset={k['offset']}").json()
+        m = self.client.get(f"/api/logs?name=frer&offset={k['offset']}").json()
         self.assertEqual(m["lines"], ['{"ts": 101}'])
         log.write_text('{"ts": 0}\n')                                      # rotated: a smaller file starts over
-        self.assertEqual(self.client.get(f"/api/logs?name=cb&offset={m['offset']}").json()["lines"], ['{"ts": 0}'])
+        self.assertEqual(self.client.get(f"/api/logs?name=frer&offset={m['offset']}").json()["lines"], ['{"ts": 0}'])
 
     def test_logs_are_a_whitelist_and_a_missing_one_is_empty(self):
         self.assertEqual(self.client.get("/api/logs?name=../../etc/passwd").status_code, 404)

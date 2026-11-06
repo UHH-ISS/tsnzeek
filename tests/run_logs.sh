@@ -2,14 +2,14 @@
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Run Zeek over every tests/pcaps/*.pcap and compare the resulting logs with tests/expected/.
 #
-#   tests/run.sh            compare
-#   tests/run.sh --update   overwrite the expected logs (review the diff before committing)
-#   tests/run.sh frer ...   only run the named cases
+#   tests/run_logs.sh            compare
+#   tests/run_logs.sh --update   overwrite the expected logs (review the diff before committing)
+#   tests/run_logs.sh frer ...   only run the named cases
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZEEK_PREFIX="${ZEEK_PREFIX:-/opt/zeek}"
-LOGS="cb ptp srp tsn_errors weird notice"
+LOGS="frer ptp srp tsn_errors weird notice"
 
 update=0
 if [[ "${1:-}" == "--update" ]]; then update=1; shift; fi

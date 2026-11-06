@@ -19,7 +19,7 @@ from scapy.layers.l2 import Dot1Q
 from scapy.sendrecv import sendp
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "layers"))
-from cb import CB  # noqa: E402
+from frer import FRER  # noqa: E402
 from srp import *  # noqa: E402,F401,F403
 
 from scapy.all import wrpcap
@@ -87,7 +87,7 @@ def create_srp_frame(interval_numerator=1, interval_denominator=1,
 
 def send_cb(interface_name, sequence_number, nr_of_packets=1, interval=0):
     packet = (Ether(src="00:00:00:00:00:02", dst=" 00:00:00:00:00:04")
-              / Dot1Q(vlan=1000) / CB(sequence_nr=sequence_number))
+              / Dot1Q(vlan=1000) / FRER(sequence_nr=sequence_number))
     sendp(packet, interface_name, count=nr_of_packets, inter=interval)
     # time between each packet is roughly 300 µs = 0.0003 seconds
 

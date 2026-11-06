@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
-"""Write the sample pcaps of scapy/samples/ (fixed timestamps, so the files do not change between runs).
+"""Write the sample pcaps of frames/samples/ (fixed timestamps, so the files do not change between runs).
 
-    .venv/bin/python scapy/scripts/make_samples.py
+    .venv/bin/python frames/scripts/make_samples.py
 
-Writes frer.pcap (the FRER tag with growing sequence numbers) and srp_talker.pcap / srp_listener.pcap
+Writes frer.pcap (the FRER tag with growing sequence numbers), ptp.pcap (Announce, Sync and Follow_Up) and srp_talker.pcap / srp_listener.pcap
 (the minimal and the complete message of each kind). Send them with pcap_sender.py.
 """
 import os
@@ -13,8 +13,9 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "layers"))
 
-from scapy.all import Dot1Q, Ether, wrpcap  # noqa: E402
-import cb  # noqa: E402,F401  (binds the FRER tag to Dot1Q)
+from scapy.all import Dot1Q, Ether, Raw, wrpcap  # noqa: E402
+import frer as frer_layer  # noqa: E402,F401  (binds the FRER tag to Dot1Q)
+import ptp  # noqa: E402
 import srp  # noqa: E402
 
 OUT = os.path.join(HERE, "..", "samples")
@@ -66,8 +67,20 @@ def srp_messages():
     return talker_min, talker_full, listener_min, listener_full
 
 
+def ptp_messages():
+    """gPTP over Ethernet (VLAN 150): Announce, then Sync and Follow_Up twice, one second apart."""
+    def msg(msg_type, body, seq):
+        return Ether(src="00:00:00:00:00:01", dst="01:80:c2:00:00:0e") / Dot1Q(vlan=150) \
+            / ptp.PTP(messageType=msg_type, sequenceId=seq) / Raw(body)
+    frames = [msg(0xB, ptp.announce_body(), 1)]
+    for seq in (1, 2):
+        frames += [msg(0x0, ptp.timestamp(ns=seq), seq), msg(0x8, ptp.timestamp(ns=seq), seq)]
+    return frames
+
+
 if __name__ == "__main__":
-    write("frer.pcap", [frame(cb.CB(sequence_nr=n)) for n in range(1, 6)])
+    write("frer.pcap", [frame(frer_layer.FRER(sequence_nr=n)) for n in range(1, 6)])
     talker_min, talker_full, listener_min, listener_full = srp_messages()
     write("srp_talker.pcap", [frame(talker_min), frame(talker_full)])
     write("srp_listener.pcap", [frame(listener_min), frame(listener_full)])
+    write("ptp.pcap", ptp_messages())

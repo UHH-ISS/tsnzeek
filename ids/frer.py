@@ -2,7 +2,7 @@
 #
 #  frer.py
 #
-# Rules for FRER (802.1CB) streams, working on the records of cb.log. The numbers are those of the original
+# Rules for FRER (802.1CB) streams, working on the records of frer.log. The numbers are those of the original
 # attack-detection.py.
 #
 #   frer_excess_copies   more copies of a frame than member streams              (attack1)
@@ -35,7 +35,7 @@ class FrerDetector(Detector):
         self.dead: Dict[str, int] = {}
 
     def on_message(self, kind, msg):
-        if kind != "cb":
+        if kind != "frer":
             return ()
         ts, seq = msg["ts"], msg["sequence_nr"]
         sid = stream_key(msg.get("src"), msg.get("vlan"))

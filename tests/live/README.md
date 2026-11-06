@@ -64,7 +64,7 @@ Four windows open, one in each corner of the screen; the Mininet CLI stays in th
 
 | Legit traffic | Attacks (each raises the IDS rule of the same name) |
 | --- | --- |
-| `stream` (FRER), `ptp_loop` (gPTP and PTP/UDP), `ptp`, `srp_normal`, `replay x.pcap` | `frer_excess_copies`, `frer_out_of_order`, `frer_mixed` (several FRER rules), `srp_oversized_request` (also `srp_unused_reservation` later), `srp_reservation_change`, `ptp_rogue_grandmaster`, `ptp_unannounced_sync`, `ptp_sequence_id` |
+| `stream` (FRER), `ptp_loop` (gPTP and PTP/UDP), `ptp`, `srp_normal`, `replay x.pcap` | `frer_excess_copies`, `frer_out_of_order`, `frer_mixed` (several FRER rules), `srp_oversized_request` (also `srp_unused_reservation` later), `srp_reservation_change`, `srp_bandwidth_jump`, `srp_request_burst`, `ptp_rogue_grandmaster`, `ptp_unannounced_sync`, `ptp_sequence_id` |
 
 A walk-through: in the h1 window start `tsn ptp_loop` (the log window fills with Sync lines, the IDS stays silent), then
 in the attacker window `tsn ptp_rogue_grandmaster`, `tsn ptp_unannounced_sync`, `tsn ptp_sequence_id`. With `--ptp` do not run `ptp_loop`; the

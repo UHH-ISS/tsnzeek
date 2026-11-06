@@ -1,6 +1,6 @@
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 
-"""Messages and a test case shared by the detector tests: hand-made records like those of cb.log and srp.log."""
+"""Messages and a test case shared by the detector tests: hand-made records like those of frer.log and srp.log."""
 import os
 import sys
 import unittest
@@ -13,8 +13,8 @@ from ids.engine import Engine  # noqa: E402
 MAC = "00:00:00:00:00:02"
 
 
-def cb(ts, seq, src="00:00:00:00:00:01", vlan=150):
-    return "cb", {"ts": ts, "src": src, "vlan": vlan, "reserved": 0, "sequence_nr": seq}
+def frer(ts, seq, src="00:00:00:00:00:01", vlan=150):
+    return "frer", {"ts": ts, "src": src, "vlan": vlan, "reserved": 0, "sequence_nr": seq}
 
 
 def talker(ts, uid, mac=MAC, num=1, den=8000, frames=2, size=128, data_vlan=None):

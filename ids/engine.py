@@ -3,7 +3,7 @@
 #  engine.py
 #
 # Transport-independent core of the IDS. Detectors see parsed TSN messages (plain dicts, the JSON
-# records Zeek also writes to cb.log, ptp.log and srp.log) and a clock that is the timestamp of the
+# records Zeek also writes to frer.log, ptp.log and srp.log) and a clock that is the timestamp of the
 # newest message, so a pcap replayed at any speed gives the same alerts as live traffic.
 #
 # A detector is anything with on_message/on_tick: the rules of frer.py, srp.py and ptp.py, a statistical test or an
@@ -38,7 +38,7 @@ class Detector:
     """Base class. Override the hooks you need; both return the alerts they raise."""
 
     def on_message(self, kind: str, msg: dict) -> Iterable[Alert]:
-        """`kind` is "cb", "ptp" or "srp"; `msg` is the decoded record, always with a `ts`."""
+        """`kind` is "frer", "ptp" or "srp"; `msg` is the decoded record, always with a `ts`."""
         return ()
 
     def on_tick(self, now: float) -> Iterable[Alert]:
