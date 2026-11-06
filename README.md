@@ -4,8 +4,9 @@ TSNZeek monitors Time-Sensitive Networking (TSN) traffic and detects attacks aga
 [Zeek](https://zeek.org) the TSN control and data protocols with [Spicy](https://docs.zeek.org/projects/spicy) grammars,
 logs everything it parses, and passes the messages to an intrusion detection module that raises alerts.
 
-> The first version, the one described in the paper, is kept under the git tag `v1` (`git checkout v1`). This tree is `v2`; the optional web
-> interface is developed on the `web` branch.
+> **Versions.** This is `v2` (also `main`): Zeek 9, the three protocols, the `ids/` package, the headless and systemd setups and the Mininet demo,
+> without a web interface. The optional web interface (watching and controlling the detection in a browser) is developed on the `web` branch, where
+> its tests are still in progress. The first version, the one described in the paper, is kept under the tag `v1` and is obsolete.
 
 ## Features
 
