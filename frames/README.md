@@ -8,7 +8,7 @@ Scapy layers to forge and send SRP and FRER frames.
 | --- | --- |
 | `layers/` | the protocol definitions: `frer.py` (FRER redundancy tag, class `FRER`), `srp.py` (enhanced SRP) and `ptp.py` (the PTP / gPTP header, and the helpers for Announce bodies and TLVs); started directly they open an interactive Scapy shell |
 | `samples/` | example captures: `frer.pcap`, `ptp.pcap`, `srp_talker.pcap`, `srp_listener.pcap` (made by `scripts/make_samples.py`) and a gPTP capture, `ptpv2_vlan.pcap` |
-| `scripts/` | `pcap_sender.py <pcap> [interface]` sends the frames of a capture, one per Enter (`pcap_sender.py frer`, `srp_talker`, `ptpv2_vlan`, ...); `make_samples.py` rewrites the sample captures; `attacks.py` is the original attack script (needs numpy), not updated for the new IDS, whose functions now carry the names of the rules that detect them (`frer_excess_copies()`, `srp_oversized_request()`, ...). The `tsn` commands of the [live demo](../tests/live/README.md) replace it |
+| `scripts/` | `pcap_sender.py <pcap> [interface]` sends the frames of a capture, one per Enter (`pcap_sender.py frer`, `srp_talker`, `ptpv2_vlan`, ...); `make_samples.py` rewrites the sample captures; `attacks.py` is the attack script (needs numpy), not updated for the new IDS, whose functions now carry the names of the rules that detect them (`frer_excess_copies()`, `srp_oversized_request()`, ...). The `tsn` commands of the [live demo](../tests/live/README.md) replace it |
 
 The tests and the demo build their frames with `tests/gen_pcaps.py`, which uses the layers.
 

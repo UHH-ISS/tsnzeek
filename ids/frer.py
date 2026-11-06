@@ -2,14 +2,11 @@
 #
 #  frer.py
 #
-# Rules for FRER (802.1CB) streams, working on the records of frer.log. The numbers are those of the original
-# attack-detection.py.
+# Rules for FRER (802.1CB) streams, working on the records of frer.log.
 #
-#   frer_excess_copies   more copies of a frame than member streams              (attack1)
-#   frer_out_of_order    sequence numbers out of order, accepted or discarded    (attack3)
-#   frer_dead_stream     member streams that stopped                             (attack4)
-#
-# (The timing attack 2 of the original script was never implemented there.)
+#   frer_excess_copies   more copies of a frame than member streams
+#   frer_out_of_order    sequence numbers out of order, accepted or discarded
+#   frer_dead_stream     member streams that stopped
 #
 # (C) 2022 Robin Schenderlein, Hamburg, Germany
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude

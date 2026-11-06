@@ -1,6 +1,9 @@
 # Changelog
 
-## Unreleased
+## v2
+
+The first version, `v1` (git tag), has the features of the paper cited in the README. `v2` is the same system made modular and adapted to
+Zeek 9.0 LTS, plus what is listed below. The web interface of the later work is developed on the `web` branch and is not part of `v2`.
 
 ### Names and layout
 - `cb` is called `frer` everywhere: `frer.zeek`, `frer.log`, the IDS message kind `frer`, `frames/layers/frer.py` (class `FRER`), `TSN::frer_message`, `FRER::FRERFrame`. The golden logs are renamed; `python3 -m ids --replay frer.log ...`.
@@ -47,7 +50,7 @@
 - Add `tests/` with a Scapy pcap generator and a replay-and-diff runner (`tests/run.sh`, `--update` regenerates the golden logs).
 
 ### IDS
-- Port `zeek/attack-detection.py` to the `ids/` package (`python3 -m ids`): `ids/engine.py` (detector interface, clock driven by message timestamps), one module per protocol (`ids/frer.py`, `ids/srp.py`, `ids/ptp.py`, thresholds in `ids/config.py`) and a CLI with live Broker, `--offline` and `--replay` (Zeek JSON logs, no Broker) modes. A detector is any object with `on_message`/`on_tick`, so a statistical test or ML model plugs in next to the rules.
+- Replace the single detection script of `v1` by the `ids/` package (`python3 -m ids`): `ids/engine.py` (detector interface, clock driven by message timestamps), one module per protocol (`ids/frer.py`, `ids/srp.py`, `ids/ptp.py`, thresholds in `ids/config.py`) and a CLI with live Broker, `--offline` and `--replay` (Zeek JSON logs, no Broker) modes. A detector is any object with `on_message`/`on_tick`, so a statistical test or ML model plugs in next to the rules.
 - Thresholds come from a JSON file (`--config`) instead of constants; drop the numpy and BitVector dependencies.
 - Zeek now sends the IDS one `TSN::ids_message(kind, json)` per message, the JSON of the record also written to `cb.log`/`ptp.log`/`srp.log`, instead of positional Spicy tuples with raw packet headers. Alerts return as `TSN::raise_notice` and become `Possible_Attack` notices.
 - Add `TSN::wait_for_peer`, `ids_ready` and `ids_done` so an offline pcap run waits for the IDS and ends with it; `tests/run_ids.sh` uses them for end-to-end tests (`ids_frer`, `ids_srp`).
@@ -81,7 +84,7 @@
 - `scapy/SRP.py`: set the `IEEE802VlanTag` TLV length to 3, matching its fields.
 
 ### Naming and layout
-- Every rule has a name that says what it detects instead of `attack1`...`attack9`: `frer_excess_copies`, `frer_out_of_order`, `frer_dead_stream`, `srp_oversized_request`, `srp_bandwidth_jump`, `srp_request_burst`, `srp_reservation_change`, `srp_unused_reservation` and the PTP rules `ptp_rogue_grandmaster`, `ptp_unannounced_sync`, `ptp_sequence_id` (the original numbers are listed in `ids/README.md`). The names are used in alerts, tests, and the functions of the old attack script (`frer_timing_jitter` is its attack 2, which has no rule).
+- Every rule has a name that says what it detects instead of a number: `frer_excess_copies`, `frer_out_of_order`, `frer_dead_stream`, `srp_oversized_request`, `srp_bandwidth_jump`, `srp_request_burst`, `srp_reservation_change`, `srp_unused_reservation` and the PTP rules `ptp_rogue_grandmaster`, `ptp_unannounced_sync`, `ptp_sequence_id`. The names are used in alerts, tests, and the functions of the attack script (`frer_timing_jitter` has no rule).
 - The attack commands of the live demo carry the name of the rule they trigger: `frer_excess_copies`, `frer_out_of_order`, `srp_oversized_request`, `srp_reservation_change`, `ptp_rogue_grandmaster`, `ptp_unannounced_sync`, `ptp_sequence_id`; the mixed FRER scenario is `frer_mixed`.
 - `ids/rules.py` is split by protocol (`frer.py`, `srp.py`, `ptp.py`), the thresholds moved to `ids/config.py`; the unit tests follow (`test_frer.py`, `test_srp.py`, `test_ptp.py`, `test_engine.py`, shared `helpers.py`).
 - `scapy/` is sorted into `layers/` (`cb.py`, `srp.py`), `samples/` (the example pcaps `frer.pcap`, `srp_talker.pcap`, `srp_listener.pcap` and the gPTP capture) and `scripts/` (`pcap_sender.py`, which sends any pcap one frame per Enter and replaces `gptp_sender.py`; `make_samples.py`; `attacks.py`). The text samples `frer_sample` and `srp_sample` are gone.
@@ -105,5 +108,5 @@
 - Remove `mininet/sshd.py`; the Mininet network now lives in `tests/live/` (`topo.py`, `userhub.py`).
 
 ### Known gaps
-- PTP rules are limited to `ptp_rogue_grandmaster`-`ptp_sequence_id`; there are none for the Sync rate, timestamp jumps or Follow_Up mismatches. frer_timing_jitter (WIP in the original) is not implemented.
+- PTP rules are limited to `ptp_rogue_grandmaster`-`ptp_sequence_id`; there are none for the Sync rate, timestamp jumps or Follow_Up mismatches. `frer_timing_jitter` (a change in the inter-arrival time of FRER frames) has no rule.
 - PTP over UDP: the Spicy UDP analyzer stops parsing a flow after its first parse error, so one malformed datagram blinds the analyzer for that 4-tuple until the connection times out (a spoofed source blinds that flow). Length problems are still reported, since they are not parse errors.
