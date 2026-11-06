@@ -17,24 +17,23 @@ TSN::wait_for_peer=T` runs (the tests use it). Thresholds come from a JSON file 
 ## Rules
 
 Every rule has a name that says what it detects; the same name appears in alerts, tests and the `tsn` attack commands of
-the [live demo](../tests/live/README.md) (where one exists). The last column is the number in the original
-`attack-detection.py` and the paper.
+the [live demo](../tests/live/README.md) (where one exists).
 
-| File | Rule (number) | Detects | Main thresholds (`Config`) | Original |
-| --- | --- | --- | --- | --- |
-| `frer.py` | `frer_excess_copies` | more copies of a frame than member streams | `nr_of_member_streams` | attack1 |
-| | `frer_out_of_order` | sequence numbers out of order, accepted or discarded by the sequence recovery | `frer_history_size`, `recovery_reset_time` | attack3 |
-| | `frer_dead_stream` | member streams that stopped (all or some copies) | `timeout` | attack4 |
-| `srp.py` | `srp_oversized_request` | a reservation above the resource thresholds | `interval_threshold`, `max_frames_per_interval_threshold`, `max_frame_size_threshold` | attack5 |
-| | `srp_bandwidth_jump` | a bandwidth more than two standard deviations from the recent requests | `srp_bandwidth_history_len` | attack6 |
-| | `srp_request_burst` | too many requests in a time window | `nr_of_requests_threshold`, `time_window_threshold` | attack7 |
-| | `srp_reservation_change` | a request for a reservation that exists already | | attack8 |
-| | `srp_unused_reservation` | a reservation with no FRER traffic | `timeout` | attack9 |
-| `ptp.py` | `ptp_rogue_grandmaster` | a grandmaster with a better clock than the current one announces itself | `ptp_gm_timeout` | |
-| | `ptp_unannounced_sync` | Sync or Follow_Up from a clock that never announced itself | `ptp_learning_time` | |
-| | `ptp_sequence_id` | sequenceId repeated, going back or skipping (Ethernet and UDP counted apart) | `ptp_seq_gap_tolerance`, `ptp_seq_reset_time` | |
+| File | Rule | Detects | Main thresholds (`Config`) |
+| --- | --- | --- | --- |
+| `frer.py` | `frer_excess_copies` | more copies of a frame than member streams | `nr_of_member_streams` |
+| | `frer_out_of_order` | sequence numbers out of order, accepted or discarded by the sequence recovery | `frer_history_size`, `recovery_reset_time` |
+| | `frer_dead_stream` | member streams that stopped (all or some copies) | `timeout` |
+| `srp.py` | `srp_oversized_request` | a reservation above the resource thresholds | `interval_threshold`, `max_frames_per_interval_threshold`, `max_frame_size_threshold` |
+| | `srp_bandwidth_jump` | a bandwidth more than two standard deviations from the recent requests | `srp_bandwidth_history_len` |
+| | `srp_request_burst` | too many requests in a time window | `nr_of_requests_threshold`, `time_window_threshold` |
+| | `srp_reservation_change` | a request for a reservation that exists already | |
+| | `srp_unused_reservation` | a reservation with no FRER traffic | `timeout` |
+| `ptp.py` | `ptp_rogue_grandmaster` | a grandmaster with a better clock than the current one announces itself | `ptp_gm_timeout` |
+| | `ptp_unannounced_sync` | Sync or Follow_Up from a clock that never announced itself | `ptp_learning_time` |
+| | `ptp_sequence_id` | sequenceId repeated, going back or skipping (Ethernet and UDP counted apart) | `ptp_seq_gap_tolerance`, `ptp_seq_reset_time` |
 
-The timing attack 2 of the original script (`frer_timing_jitter` in `frames/scripts/attacks.py`) has no rule.
+The FRER timing attack `frer_timing_jitter` (`frames/scripts/attacks.py`) has no rule.
 
 One detector per protocol: `FrerDetector` (frer.log), `SrpDetector` (srp.log; it also reads frer.log to see whether a reservation
 is used) and `PtpDetector` (ptp.log). `config.py` holds all thresholds. The PTP rules judge message content and sequences,
@@ -54,4 +53,4 @@ To add a detector (a statistical test, an embedded ML model), subclass `Detector
 ## Known gaps
 
 - No PTP rules for the Sync rate, timestamp jumps or Follow_Up mismatches.
-- Attack 2 of the original script (work in progress there) is not implemented.
+- No rule for `frer_timing_jitter`, a change in the inter-arrival time of FRER frames.

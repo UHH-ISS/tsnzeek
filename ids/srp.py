@@ -2,14 +2,13 @@
 #
 #  srp.py
 #
-# Rules for SRP (802.1Qcc) reservations, working on the Talker records of srp.log. The numbers are those of the
-# original attack-detection.py.
+# Rules for SRP (802.1Qcc) reservations, working on the Talker records of srp.log.
 #
-#   srp_oversized_request      a request above a resource threshold                    (attack5)
-#   srp_bandwidth_jump         a bandwidth that deviates from the recent requests      (attack6)
-#   srp_request_burst          too many requests in a time window                      (attack7)
-#   srp_reservation_change     a request for a reservation that exists already         (attack8)
-#   srp_unused_reservation     a reservation with no FRER traffic                      (attack9)
+#   srp_oversized_request      a request above a resource threshold
+#   srp_bandwidth_jump         a bandwidth that deviates from the recent requests
+#   srp_request_burst          too many requests in a time window
+#   srp_reservation_change     a request for a reservation that exists already
+#   srp_unused_reservation     a reservation with no FRER traffic
 #
 # The last rule also reads the records of frer.log: a reservation is used when frames of its stream arrive.
 #

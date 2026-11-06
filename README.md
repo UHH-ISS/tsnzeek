@@ -4,9 +4,10 @@ TSNZeek monitors Time-Sensitive Networking (TSN) traffic and detects attacks aga
 [Zeek](https://zeek.org) the TSN control and data protocols with [Spicy](https://docs.zeek.org/projects/spicy) grammars,
 logs everything it parses, and passes the messages to an intrusion detection module that raises alerts.
 
-> **Versions.** This is `v2` (also `main`): Zeek 9, the three protocols, the `ids/` package, the headless and systemd setups and the Mininet demo,
-> without a web interface. The optional web interface (watching and controlling the detection in a browser) is developed on the `web` branch, where
-> its tests are still in progress. The first version, the one described in the paper, is kept under the tag `v1` and is obsolete.
+> **Versions.** The first version, which has the same features as the paper cited at the end of this page, is kept under the tag `v1`
+> (`git checkout v1`). This is `v2` (branch `main`): the same system, made far more modular and adapted to the latest Zeek (9.x LTS). What
+> changed is in [`CHANGELOG.md`](CHANGELOG.md), please read it. The optional web interface is developed on the `web` branch, where its tests
+> are still in progress.
 
 ## Features
 
@@ -38,9 +39,9 @@ logs everything it parses, and passes the messages to an intrusion detection mod
 | [`ids/`](ids/README.md) | the intrusion detection (control plane) |
 | [`deploy/`](deploy/README.md) | optional systemd services, configuration and log locations |
 | [`tests/`](tests/README.md) | unit and pcap tests; [`tests/live/`](tests/live/README.md) the Mininet network, live tests and demo |
-| [`frames/`](frames/README.md) | Scapy layers for FRER and SRP, the original attack script |
+| [`frames/`](frames/README.md) | Scapy layers for FRER, SRP and PTP, the attack script |
 | `build.sh` | compiles the grammars and runs the unit tests afterwards (`--no-test` skips them) |
-| [`CHANGELOG.md`](CHANGELOG.md) | what changed since the original release |
+| [`CHANGELOG.md`](CHANGELOG.md) | what changed from `v1` to `v2` |
 
 ## Installation
 
