@@ -10,20 +10,13 @@
 - `tsn srp_bandwidth_jump` and `tsn srp_request_burst` (with live scenarios in `run_live.py`).
 - `stats.log`: Zeek's load figures (packets processed and dropped, events, memory) every 10 s.
 
-### Web interface
-- Optional everywhere: `deploy/headless.sh start ... -w [-p PORT]` starts it with the monitor and the IDS (`stop` and `status` handle it), `sudo deploy/install.sh --with-web` installs `tsnzeek-web.service` (same user as the IDS, `127.0.0.1:8000`). Without these nothing of it runs.
-- `web/`: a small Django app (no database, `127.0.0.1` only) with the tabs Overview (connection, messages per second, alerts per rule, tracked FRER streams, SRP reservations and PTP domains, latest alerts), Rules (switch rules on and off), Config (change thresholds) and Logs (live tail of Zeek's logs and the alerts). It reads `state.json` and the logs and writes `control.json`, validated by the code the IDS applies it with. Tests: `python web/manage.py test console`.
-- Rules have stable numbers (1xx FRER, 2xx SRP, 3xx PTP); `control.json` takes a name or a number.
-
-### Run-time control
-- `ids/catalog.py` lists the rules as data (name, protocol, summary, thresholds); a test keeps it equal to the rules the detectors raise.
-- `--control-dir` / `$TSNZEEK_CONTROL_DIR`: the IDS writes `state.json` (rules, active configuration, counters, messages per second, tracked streams, connection to Zeek) and applies `control.json` (disabled rules, threshold overrides) within half a second, without a restart and without losing what the detectors learned (`Detector.reconfigure`). The service uses `/var/lib/tsnzeek`, `headless.sh` uses `$TSNZEEK_DIR/control`.
-- The IDS no longer blocks inside Broker's `peer()` while Zeek is down (`peer_nosync`), so state and control are served while it waits.
+### Broker
+- The IDS no longer blocks inside Broker's `peer()` while Zeek is down (`peer_nosync`).
 
 ### Service
 - Optional systemd services in `deploy/` (monitor and IDS as user `tsnzeek`, `install.sh`, logs in `/var/log/tsnzeek`, daily Zeek log rotation, logrotate for the alert log); TSNZeek still runs without them.
 - IDS: `--service` (waits for Zeek without a time limit and survives Zeek restarts), `--alert-log`, and the config file is looked up in `--config`, `$TSNZEEK_CONFIG`, `/etc/tsnzeek/ids.json`, then the defaults.
-- `deploy/headless.sh` works inside a Mininet host (`mon deploy/headless.sh start -i mon-eth0`): it checks the interface with `ip link` instead of `/sys/class/net` (which shows the other namespace), and when started as root through `sudo` it uses the home of that user and gives the directory to them, so that the web interface can write `control.json`. Guide: `tests/live/README.md`.
+- `deploy/headless.sh` works inside a Mininet host (`mon deploy/headless.sh start -i mon-eth0`): it checks the interface with `ip link` instead of `/sys/class/net` (which shows the other namespace), and when started as root through `sudo` it uses the home of that user and gives the directory to them. Guide: `tests/live/README.md`.
 - `deploy/headless.sh start|stop|status`: the monitor (Zeek) and the IDS in the background without a service. Everything lives in one directory, `$TSNZEEK_DIR` (default `~/tsnzeek`): `logs/` and `run/` (pid files), so that `stop` ends both.
 - `deploy/ids.json` lists every threshold with its default; `install.sh` puts it in `/etc/tsnzeek/` unless a file is there. A unit test keeps it equal to `ids/config.py`.
 - The Zeek unit is called `tsnzeek-monitor.service` (monitor and IDS are the two parts); `install.sh` removes an old `tsnzeek-zeek.service`.
@@ -31,7 +24,7 @@
 
 ### Documentation
 - Step-by-step guides: running Zeek and the IDS headless (README), the systemd services with checks, day-to-day commands and troubleshooting (`deploy/README.md`), the automatic tests (`tests/README.md`) and the Mininet demo, with and without a display (`tests/live/README.md`).
-- The four ways to run are each one self-contained guide: the tests (`tests/README.md`), headless with the optional web interface (README), the services with the optional web interface (`deploy/README.md`) and the Mininet demo without it (`tests/live/README.md`).
+- The four ways to run are each one self-contained guide: the tests (`tests/README.md`), headless (README), the services (`deploy/README.md`) and the Mininet demo (`tests/live/README.md`).
 - Explain why a plain pcap run needs `TSN::enable_broker=F` (README and `spicy/README.md`).
 
 ### Version upgrades

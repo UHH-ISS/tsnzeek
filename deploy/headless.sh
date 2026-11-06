@@ -2,14 +2,11 @@
 # (C) 2026 Doganalp Ergenc, written with the assistance of Claude
 # Run Zeek and the IDS in the background without a terminal window and without installing a service.
 #
-#   deploy/headless.sh start [-i INTERFACE] [-d TSNZEEK_DIR] [-c IDS_CONFIG.json] [-w [-p PORT]]
+#   deploy/headless.sh start [-i INTERFACE] [-d TSNZEEK_DIR] [-c IDS_CONFIG.json]
 #   deploy/headless.sh stop   [-d TSNZEEK_DIR]
 #   deploy/headless.sh status [-d TSNZEEK_DIR]
 #
-# -w also starts the web interface (web/, needs Django in .venv) on 127.0.0.1:PORT (default 8000), as the user.
-#
-# Everything lives in one directory: logs/ (Zeek's logs, alerts.log, ids.out, monitor.out), run/ (pid files) and control/ (state.json and
-# control.json, the channel to the web interface).
+# Everything lives in one directory: logs/ (Zeek's logs, alerts.log, ids.out, monitor.out), run/ (pid files).
 # Defaults: interface $TSNZEEK_INTERFACE (else the first non-loopback one), directory $TSNZEEK_DIR (else ~/tsnzeek),
 # IDS config $TSNZEEK_CONFIG (else /etc/tsnzeek/ids.json if it exists, else the defaults).
 # Inside a Mininet host (the CLI runs as root): `mon deploy/headless.sh start -i mon-eth0`; see tests/live/README.md.
@@ -21,7 +18,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ZEEK_PREFIX="${ZEEK_PREFIX:-/opt/zeek}"
 IFACE="${TSNZEEK_INTERFACE:-}"
 # Started as root through sudo (also from the Mininet CLI, which runs as root): use the home of the user who ran sudo, and
-# give the directory to that user, so that the web interface, which runs as that user, can write control.json.
+# give the directory to that user.
 OWNER=""
 [[ $EUID -eq 0 && -n "${SUDO_USER:-}" && "$SUDO_USER" != root ]] && OWNER="$SUDO_USER"
 USER_HOME="$HOME"
@@ -30,15 +27,11 @@ DIR="${TSNZEEK_DIR:-$USER_HOME/tsnzeek}"
 CONFIG="${TSNZEEK_CONFIG:-}"
 
 cmd="${1:-}"; [[ $# -gt 0 ]] && shift
-WEB=0
-PORT=8000
-while getopts "i:d:c:wp:" opt; do
+while getopts "i:d:c:" opt; do
 	case "$opt" in
 		i) IFACE="$OPTARG" ;;
 		d) DIR="$OPTARG" ;;
 		c) CONFIG="$OPTARG" ;;
-		w) WEB=1 ;;
-		p) PORT="$OPTARG" ;;
 		*) exit 2 ;;
 	esac
 done
@@ -47,7 +40,6 @@ LOGS="$DIR/logs"
 RUN="$DIR/run"
 IDS_PID="$RUN/ids.pid"
 MONITOR_PID="$RUN/monitor.pid"
-WEB_PID="$RUN/web.pid"
 
 alive() { [[ -f "$1" ]] && kill -0 "$(cat "$1")" 2>/dev/null; }          # signal 0 fails for root's Zeek if we are not root
 running() { [[ -f "$1" ]] && [[ -d "/proc/$(cat "$1")" ]]; }
@@ -67,7 +59,7 @@ stop_one() {    # name pidfile
 
 case "$cmd" in
 start)
-	if running "$IDS_PID" || running "$MONITOR_PID" || running "$WEB_PID"; then
+	if running "$IDS_PID" || running "$MONITOR_PID"; then
 		echo "already running (deploy/headless.sh status); stop it first" >&2; exit 1
 	fi
 	[[ -f "$ROOT/build/spicy/tsn.hlto" ]] || { echo "build first: $ROOT/build.sh" >&2; exit 1; }
@@ -79,10 +71,10 @@ start)
 	# `ip link` shows the interfaces of the network namespace this runs in (a Mininet host: `mon deploy/headless.sh ...`);
 	# /sys/class/net would show those of the namespace sysfs was mounted in.
 	ip link show dev "$IFACE" >/dev/null 2>&1 || { echo "no such interface: $IFACE (ip -br link)" >&2; exit 1; }
-	mkdir -p "$LOGS" "$RUN" "$DIR/control"
+	mkdir -p "$LOGS" "$RUN"
 	[[ -n "$OWNER" ]] && chown -R "$OWNER": "$DIR"
 
-	ids_args=(--service --alert-log "$LOGS/alerts.log" --control-dir "$DIR/control")
+	ids_args=(--service --alert-log "$LOGS/alerts.log")
 	[[ -n "$CONFIG" ]] && ids_args+=(--config "$CONFIG")
 	# Only the python command goes to the background (`&` after `&&` would background the whole list, and $! would be a subshell).
 	(cd "$ROOT"; PYTHONPATH="$ZEEK_PREFIX/lib/zeek/python" setsid nohup python3 -m ids "${ids_args[@]}" \
@@ -101,35 +93,22 @@ start)
 	fi
 	for _ in $(seq 50); do running "$MONITOR_PID" && break; sleep 0.1; done
 	sleep 1
-	if [[ $WEB -eq 1 ]] && running "$MONITOR_PID" && running "$IDS_PID"; then
-		web_py="$ROOT/.venv/bin/python"; [[ -x "$web_py" ]] || web_py=python3
-		if ! "$web_py" -c "import django" 2>/dev/null; then
-			echo "the web interface needs Django: $ROOT/.venv/bin/pip install -r $ROOT/web/requirements.txt" >&2
-		else
-			web_cmd=(env TSNZEEK_CONTROL_DIR="$DIR/control" TSNZEEK_LOG_DIR="$LOGS" "$web_py" "$ROOT/web/manage.py" runserver --noreload "127.0.0.1:$PORT")
-			[[ -n "$OWNER" ]] && web_cmd=(sudo -u "$OWNER" "${web_cmd[@]}")
-			(cd "$ROOT"; setsid nohup "${web_cmd[@]}" >"$LOGS/web.out" 2>&1 & echo $! >"$WEB_PID")
-			sleep 1
-			running "$WEB_PID" && echo "web interface: http://127.0.0.1:$PORT/" || echo "the web interface did not start; see $LOGS/web.out" >&2
-		fi
-	fi
 	if running "$MONITOR_PID" && running "$IDS_PID"; then
 		echo "started: interface $IFACE, everything in $DIR (logs in $LOGS)"
 		echo "  tail -f $LOGS/alerts.log     stop: deploy/headless.sh stop -d $DIR"
 	else
 		echo "start failed; see $LOGS/monitor.out and $LOGS/ids.out" >&2
-		stop_one IDS "$IDS_PID" >/dev/null; stop_one Monitor "$MONITOR_PID" >/dev/null; stop_one Web "$WEB_PID" >/dev/null; exit 1
+		stop_one IDS "$IDS_PID" >/dev/null; stop_one Monitor "$MONITOR_PID" >/dev/null; exit 1
 	fi
 	;;
 stop)
-	stop_one Web "$WEB_PID"
 	stop_one IDS "$IDS_PID"
 	stop_one Monitor "$MONITOR_PID"
 	;;
 status)
-	for n in IDS Monitor Web; do
+	for n in IDS Monitor; do
 		pf="$RUN/$(echo "$n" | tr A-Z a-z).pid"
-		if running "$pf"; then echo "$n: running (pid $(cat "$pf"))"; elif [[ $n != Web ]]; then echo "$n: not running"; fi
+		if running "$pf"; then echo "$n: running (pid $(cat "$pf"))"; else echo "$n: not running"; fi
 	done
 	[[ -f "$LOGS/ids.out" ]] && tail -n 3 "$LOGS/ids.out" | sed 's/^/  ids.out: /'
 	;;

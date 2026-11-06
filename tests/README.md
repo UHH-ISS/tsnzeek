@@ -13,8 +13,7 @@
 3. **Rules and pcaps through Zeek**, about two seconds: `python3 -m unittest discover -s tests/unit`. Expect `OK`.
 4. **Zeek's logs** against the golden logs, about ten seconds: `tests/run_logs.sh`. One line per case, `ok   <case>`; a `FAIL` line is followed by the diff. `tests/run_logs.sh frer ptp_udp` runs only the named cases.
 5. **Zeek and the IDS together**: `tests/run_ids.sh`. It starts Zeek on each `ids_*` pcap with `TSN::wait_for_peer=T` and the IDS with `--offline`, and checks that the alerts equal `expected/<case>/alerts.txt` and that each alert also came back as a notice.
-6. **The web interface**, optional, needs Django: `.venv/bin/python web/manage.py test console`. Expect `OK`.
-7. **Live**, in Mininet, optional and needs root: `sudo python3 tests/live/run_live.py` ([guide](live/README.md)).
+6. **Live**, in Mininet, optional and needs root: `sudo python3 tests/live/run_live.py` ([guide](live/README.md)).
 
 If you changed behaviour on purpose, rewrite the golden files with `tests/run_logs.sh --update` and `tests/run_ids.sh --update`, and read `git diff tests/expected` before committing. A run that hangs is usually Zeek waiting for the IDS or a Broker listener: a plain pcap needs `TSN::enable_broker=F` (the runners set it).
 
@@ -25,7 +24,6 @@ If you changed behaviour on purpose, rewrite the golden files with `tests/run_lo
 | Rules | `python3 -m unittest discover -s tests/unit` | every IDS rule on hand-made messages (no Zeek), and on the `ids_*` pcaps through Zeek; the user-space hub |
 | Zeek logs | `tests/run_logs.sh` | Zeek's logs for every pcap in `tests/pcaps/` against `tests/expected/` |
 | End to end | `tests/run_ids.sh` | Zeek and the IDS over Broker on the `ids_*` pcaps; every alert must also reach Zeek as a notice |
-| Web interface | `.venv/bin/python web/manage.py test console` | the API of the web interface (rules, thresholds, log tail, CSRF, validation) against temporary directories; needs Django (`.venv/bin/pip install -r web/requirements.txt`) |
 | Live | `sudo python3 tests/live/run_live.py` | the same in Mininet, with real `ptp4l`; see [live/README.md](live/README.md) |
 
 `./build.sh` runs the unit tests after every compilation (`--no-test` skips them; the runners below use it, so tests do not
