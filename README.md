@@ -6,7 +6,7 @@ logs everything it parses, and passes the messages to an intrusion detection mod
 
 > **Versions.** The first version, which has the same features as the paper cited at the end of this page, is kept under the tag `v1`
 > (`git checkout v1`). This is `v2` (branch `main`): the same system, made far more modular and adapted to the latest Zeek (9.x LTS). What
-> changed is in [`CHANGELOG.md`](CHANGELOG.md), please read it. The optional web interface is developed on the `web` branch, where its tests
+> changed is in [`CHANGELOG.md`](CHANGELOG.md). The optional web interface is developed on the `web` branch, where its tests
 > are still in progress.
 
 ## Features
